@@ -2,7 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,visualstudiocode,web,flask,dotenv
 
 ### Project specifics ###
-.json
+*.json
 
 ### dotenv ###
 .env
