@@ -18,7 +18,7 @@
         const pricesContainer = document.getElementById("prices-container");
         pricesContainer.innerHTML = "<p>Fetching data...</p>";
 
-        fetch("http://osseydanger.duckdns.org:5000/api/data")
+        fetch("https://osseydanger.duckdns.org:5000/api/data")
           .then((response) => {
             if (!response.ok) {
               throw new Error("Unable to fetch data");
