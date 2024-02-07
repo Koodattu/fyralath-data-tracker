@@ -1,1 +1,61 @@
-make website here
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auction House Prices</title>
+    <style>
+      .error-message {
+        color: red;
+      }
+    </style>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        fetchData();
+      });
+
+      function fetchData() {
+        const pricesContainer = document.getElementById("prices-container");
+        pricesContainer.innerHTML = "<p>Fetching data...</p>";
+
+        fetch("http://osseydanger.duckdns.org:5000/api/data")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Unable to fetch data");
+            }
+            return response.json();
+          })
+          .then((data) => displayPrices(data))
+          .catch((error) => displayError(error));
+      }
+
+      function displayPrices(data) {
+        const pricesContainer = document.getElementById("prices-container");
+        pricesContainer.innerHTML = "";
+
+        data.forEach((item) => {
+          const { region, total_cost } = item;
+          const gold = Math.floor(total_cost / 10000);
+          const silver = Math.floor((total_cost % 10000) / 100);
+          const copper = total_cost % 100;
+
+          const regionElement = document.createElement("div");
+          regionElement.innerHTML = `
+                    <h3>${region.toUpperCase()}</h3>
+                    <p>Total Cost: ${gold.toLocaleString()} gold, ${silver} silver, ${copper} copper</p>
+                `;
+          pricesContainer.appendChild(regionElement);
+        });
+      }
+
+      function displayError(error) {
+        const pricesContainer = document.getElementById("prices-container");
+        pricesContainer.innerHTML = `<p class="error-message">Error fetching data: ${error.message}</p>`;
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Fyr'alath current price to craft per region</h1>
+    <div id="prices-container"></div>
+  </body>
+</html>
