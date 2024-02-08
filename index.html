@@ -4,183 +4,148 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Auction House Prices</title>
+    <script src="https://wow.zamimg.com/widgets/power.js"></script>
     <style>
-      .error-message {
-        color: red;
-      }
-
-      *,
-      *:before,
-      *:after {
-        box-sizing: border-box;
+      * {
+        padding: 0;
+        margin: 0;
+        font-family: Arial;
       }
 
       body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-        padding: 0;
-      }
-
-      .region-container {
-        margin-bottom: 20px;
-      }
-
-      .item {
-        margin-bottom: 10px;
-      }
-
-      .poor {
-        color: gray;
-      }
-
-      .common {
+        padding: 20px;
+        background-color: rgb(32, 32, 32);
         color: white;
       }
 
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        padding: 20px;
+      }
+
+      a {
+        text-decoration: none;
+      }
+
+      .item {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+
+      /* Example rarity colors */
+      .common {
+        color: #ffffff;
+      }
       .uncommon {
-        color: green;
+        color: #1eff00;
       }
-
       .rare {
-        color: blue;
+        color: #0070dd;
       }
-
       .epic {
-        color: purple;
+        color: #a335ee;
+      }
+      .legendary {
+        color: #ff8000;
       }
 
-      .legendary {
-        color: orange;
+      .gold-icon {
+        width: 16px;
+        height: 16px;
+        background-image: url("https://wow.zamimg.com/images/icons/money-gold.gif"); /* Path to your gold icon image */
+        display: inline-block;
+        background-size: contain;
+        margin-right: 4px;
+      }
+
+      .price {
+        color: white;
       }
     </style>
   </head>
   <body>
     <h1>Auction House Prices by Item and Region</h1>
-    <div id="prices-container"></div>
-
+    <div id="items-grid" class="grid-container"></div>
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
+      document.addEventListener("DOMContentLoaded", () => {
         fetchData();
       });
 
-      function fetchData() {
-        const pricesContainer = document.getElementById("prices-container");
-        pricesContainer.innerHTML = "<p>Fetching data...</p>";
+      async function fetchData() {
+        // Simulating a fetch request - replace with actual fetch from your backend
+        const response = await fetch("python-backend/data/latest_item_prices.json");
+        const json = await response.json();
 
-        fetch("goal.json")
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Unable to fetch data");
-            }
-            return response.json();
-          })
-          .then((data) => displayPrices(data))
-          .catch((error) => displayError(error));
+        displayData(json);
       }
 
-      function displayPrices(data) {
-        const pricesContainer = document.getElementById("prices-container");
-        pricesContainer.innerHTML = "";
-
-        Object.keys(data).forEach((region) => {
-          const regionElement = document.createElement("div");
-          regionElement.className = "region-container";
-
-          let itemsHtml = `<h2>${region.toUpperCase()}</h2>`;
-          data[region].forEach((item) => {
-            itemsHtml += `<div class="item ${getItemQualityClass(item.quality)}">
-                                    <p><a href="https://www.wowhead.com/item=${
-                                      item.id
-                                    }" target="_blank" class="wow-tooltip" data-wowhead="item=${
-              item.id
-            }" data-wh-icon-size="medium">${item.name}</a> - Price: ${formatPrice(item.price)}</p>`;
-            if (item.parts) {
-              item.parts.forEach((part) => {
-                itemsHtml += `<p><a href="https://www.wowhead.com/item=${
-                  part.id
-                }" target="_blank" class="wow-tooltip" data-wowhead="item=${part.id}" data-wh-icon-size="medium">${
-                  part.name
-                }</a> - Price: ${formatPrice(part.price)}</p>`;
-                if (part.parts) {
-                  part.parts.forEach((subPart) => {
-                    itemsHtml += `<p><a href="https://www.wowhead.com/item=${
-                      subPart.id
-                    }" target="_blank" class="wow-tooltip" data-wowhead="item=${
-                      subPart.id
-                    }" data-wh-icon-size="medium">${subPart.name}</a> - Price: ${formatPrice(subPart.price)}</p>`;
-                  });
-                }
-              });
-            }
-            itemsHtml += `</div>`;
-          });
-
-          regionElement.innerHTML = itemsHtml;
-          pricesContainer.appendChild(regionElement);
+      function displayData(data) {
+        const grid = document.getElementById("items-grid");
+        data.data.forEach((region) => {
+          const regionContainer = document.createElement("div");
+          regionContainer.innerHTML = `<h2>${region.region.toUpperCase()}</h2>`;
+          displayMainItem(region.data, regionContainer);
+          grid.appendChild(regionContainer);
         });
-
-        // Load WoWhead tooltips on hover
-        loadWowheadTooltips();
       }
 
-      function formatPrice(price) {
-        const gold = Math.floor(price / 10000);
-        const silver = Math.floor((price % 10000) / 100);
-        const copper = price % 100;
-        return `${gold.toLocaleString()} gold, ${silver} silver, ${copper} copper`;
-      }
+      function displayMainItem(itemData, container) {
+        const mainItemElement = createItemElement(itemData);
+        container.appendChild(mainItemElement);
 
-      function displayError(error) {
-        const pricesContainer = document.getElementById("prices-container");
-        pricesContainer.innerHTML = `<p class="error-message">Error fetching data: ${error.message}</p>`;
-      }
-
-      function getItemQualityClass(quality) {
-        switch (quality) {
-          case "POOR":
-            return "poor";
-          case "COMMON":
-            return "common";
-          case "UNCOMMON":
-            return "uncommon";
-          case "RARE":
-            return "rare";
-          case "EPIC":
-            return "epic";
-          case "LEGENDARY":
-            return "legendary";
-          default:
-            return "";
+        if (itemData.hasOwnProperty("parts") && itemData.parts.length > 0) {
+          itemData.parts.forEach((part) => {
+            processItem(part, container); // Recursively process each part
+          });
         }
       }
 
-      function loadWowheadTooltips() {
-        if (typeof window.WHMCSClientArea === "undefined") {
-          const script = document.createElement("script");
-          script.src = "https://wow.zamimg.com/widgets/power.js";
-          document.head.appendChild(script);
+      function processItem(part, container) {
+        const itemElement = createItemElement(part);
+        container.appendChild(itemElement);
+
+        if (part.parts && part.parts.length > 0) {
+          part.parts.forEach((subPart) => {
+            processItem(subPart, container); // Recursive call to process nested parts
+          });
         }
       }
 
-      // Add event listener to load tooltips on hover
-      document.addEventListener("mouseover", function (event) {
-        if (event.target.classList.contains("wow-tooltip")) {
-          loadWowheadTooltips();
-        }
-      });
+      function createItemElement(item) {
+        const itemElement = document.createElement("div");
+        itemElement.classList.add("item", item.quality);
+        itemElement.innerHTML = `
+        <a href="https://www.wowhead.com/item=${item.id}" class="${getQualityClass(item.quality)}" data-wowhead="item=${
+          item.id
+        }">
+            ${item.name}
+        </a> 
+        <span class="price">
+            <span class="gold-icon"></span>${formatGold(item.price)}
+        </span>
+    `;
+        return itemElement;
+      }
 
-      // Add event listener to remove tooltips when mouse moves away
-      document.addEventListener("mouseout", function (event) {
-        if (event.target.classList.contains("wow-tooltip")) {
-          removeWowheadTooltip();
-        }
-      });
+      function formatGold(price) {
+        // Converts price to gold assuming the price is in copper
+        return Math.floor(price / 10000); // Adjust if your price unit differs
+      }
 
-      // Function to remove tooltips
-      function removeWowheadTooltip() {
-        if (typeof window.WHMCSClientArea !== "undefined" && typeof window.WHMCSClientArea.tooltip !== "undefined") {
-          window.WHMCSClientArea.tooltip.hide();
-        }
+      function getQualityClass(quality) {
+        // Converts quality to a class name used for coloring
+        const qualityClasses = {
+          common: "common",
+          uncommon: "uncommon",
+          rare: "rare",
+          epic: "epic",
+          legendary: "legendary",
+          artifact: "artifact",
+        };
+        return qualityClasses[quality] || "common";
       }
     </script>
   </body>

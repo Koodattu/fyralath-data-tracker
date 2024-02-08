@@ -281,3 +281,7 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,web,flask,dotenv
+python-backend/data/auction_data/auction_data_eu.json
+python-backend/data/auction_data/auction_data_kr.json
+python-backend/data/auction_data/auction_data_us.json
+python-backend/data/auction_data/auction_data_tw.json
