@@ -28,6 +28,30 @@
       .item {
         margin-bottom: 10px;
       }
+
+      .poor {
+        color: gray;
+      }
+
+      .common {
+        color: white;
+      }
+
+      .uncommon {
+        color: green;
+      }
+
+      .rare {
+        color: blue;
+      }
+
+      .epic {
+        color: purple;
+      }
+
+      .legendary {
+        color: orange;
+      }
     </style>
   </head>
   <body>
@@ -43,15 +67,14 @@
         const pricesContainer = document.getElementById("prices-container");
         pricesContainer.innerHTML = "<p>Fetching data...</p>";
 
-        // Adjust the fetch URL as necessary
-        fetch("http://192.168.38.104:5000/api/data/current")
+        fetch("goal.json")
           .then((response) => {
             if (!response.ok) {
               throw new Error("Unable to fetch data");
             }
             return response.json();
           })
-          .then((data) => displayPrices(data.data))
+          .then((data) => displayPrices(data))
           .catch((error) => displayError(error));
       }
 
@@ -65,18 +88,39 @@
 
           let itemsHtml = `<h2>${region.toUpperCase()}</h2>`;
           data[region].forEach((item) => {
-            const wowheadUrl = `https://www.wowhead.com/item=${item.item_id}`;
-            itemsHtml += `
-                        <div class="item">
-                            <a href="${wowheadUrl}" target="_blank">${item.name}</a>
-                            - Price: ${formatPrice(item.price)}
-                        </div>
-                    `;
+            itemsHtml += `<div class="item ${getItemQualityClass(item.quality)}">
+                                    <p><a href="https://www.wowhead.com/item=${
+                                      item.id
+                                    }" target="_blank" class="wow-tooltip" data-wowhead="item=${
+              item.id
+            }" data-wh-icon-size="medium">${item.name}</a> - Price: ${formatPrice(item.price)}</p>`;
+            if (item.parts) {
+              item.parts.forEach((part) => {
+                itemsHtml += `<p><a href="https://www.wowhead.com/item=${
+                  part.id
+                }" target="_blank" class="wow-tooltip" data-wowhead="item=${part.id}" data-wh-icon-size="medium">${
+                  part.name
+                }</a> - Price: ${formatPrice(part.price)}</p>`;
+                if (part.parts) {
+                  part.parts.forEach((subPart) => {
+                    itemsHtml += `<p><a href="https://www.wowhead.com/item=${
+                      subPart.id
+                    }" target="_blank" class="wow-tooltip" data-wowhead="item=${
+                      subPart.id
+                    }" data-wh-icon-size="medium">${subPart.name}</a> - Price: ${formatPrice(subPart.price)}</p>`;
+                  });
+                }
+              });
+            }
+            itemsHtml += `</div>`;
           });
 
           regionElement.innerHTML = itemsHtml;
           pricesContainer.appendChild(regionElement);
         });
+
+        // Load WoWhead tooltips on hover
+        loadWowheadTooltips();
       }
 
       function formatPrice(price) {
@@ -89,6 +133,54 @@
       function displayError(error) {
         const pricesContainer = document.getElementById("prices-container");
         pricesContainer.innerHTML = `<p class="error-message">Error fetching data: ${error.message}</p>`;
+      }
+
+      function getItemQualityClass(quality) {
+        switch (quality) {
+          case "POOR":
+            return "poor";
+          case "COMMON":
+            return "common";
+          case "UNCOMMON":
+            return "uncommon";
+          case "RARE":
+            return "rare";
+          case "EPIC":
+            return "epic";
+          case "LEGENDARY":
+            return "legendary";
+          default:
+            return "";
+        }
+      }
+
+      function loadWowheadTooltips() {
+        if (typeof window.WHMCSClientArea === "undefined") {
+          const script = document.createElement("script");
+          script.src = "https://wow.zamimg.com/widgets/power.js";
+          document.head.appendChild(script);
+        }
+      }
+
+      // Add event listener to load tooltips on hover
+      document.addEventListener("mouseover", function (event) {
+        if (event.target.classList.contains("wow-tooltip")) {
+          loadWowheadTooltips();
+        }
+      });
+
+      // Add event listener to remove tooltips when mouse moves away
+      document.addEventListener("mouseout", function (event) {
+        if (event.target.classList.contains("wow-tooltip")) {
+          removeWowheadTooltip();
+        }
+      });
+
+      // Function to remove tooltips
+      function removeWowheadTooltip() {
+        if (typeof window.WHMCSClientArea !== "undefined" && typeof window.WHMCSClientArea.tooltip !== "undefined") {
+          window.WHMCSClientArea.tooltip.hide();
+        }
       }
     </script>
   </body>
