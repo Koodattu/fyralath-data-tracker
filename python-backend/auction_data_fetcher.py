@@ -231,6 +231,7 @@ class AuctionDataFetcher:
 
             # Now, instead of using a reversed list, update prices in base_json directly using extracted item_ids
             # Then, recalculate composite item prices based on updated auction prices
+            base_json = self.read_base_json()
             region_data = self.calculate_total_cost(auction_data, base_json, item_ids)
             aggregated_data.append({"region": region, "data": region_data})
 
