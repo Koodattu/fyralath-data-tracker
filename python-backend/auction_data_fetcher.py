@@ -17,11 +17,13 @@ class AuctionDataFetcher:
         token_url = 'https://us.battle.net/oauth/token'
         data = {'grant_type': 'client_credentials'}
         headers = {'Authorization': f'Basic {base64_encoded_credentials}'}
-        response = requests.post(token_url, data=data, headers=headers)
-        if response.status_code == 200:
+        try:
+            response = requests.post(token_url, data=data, headers=headers)
+            response.raise_for_status()
             return response.json()['access_token']
-        else:
-            raise Exception(f'Error acquiring access token: Status Code {response.status_code}')
+        except Exception as e:
+            print(f"Error acquiring access token: {e}")
+            return None
 
     def fetch_data(self, region, access_token):
         """Fetches data from a specific region."""
@@ -31,24 +33,21 @@ class AuctionDataFetcher:
             'locale': 'en_US',
             'access_token': access_token
         }
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
             return response.json()
-        else:
-            raise Exception(f'Error fetching data: Status Code {response.status_code}')
+        except Exception as e:
+            print(f"Error fetching data for {region} region: {e}")
+            return None
 
     def save_data_as_json(self, filename, data):
         """Saves the fetched data as a JSON file."""
-        with open(filename, 'w') as file:
-            json.dump(data, file)
-
-    def read_data_from_json(self, filename):
-        """Reads data from a saved JSON file."""
-        if os.path.exists(filename):
-            with open(filename, 'r') as file:
-                return json.load(file)
-        else:
-            return None
+        try:
+            with open(filename, 'w') as file:
+                json.dump(data, file)
+        except Exception as e:
+            print(f"Error saving data as JSON to {filename}: {e}")
 
     def entry_exists_for_current_hour(self, region):
         """Checks if an entry for the current year, month, day, and hour exists in the file."""
@@ -56,14 +55,18 @@ class AuctionDataFetcher:
         now = datetime.datetime.now().isoformat()
         current_date_hour = now[:13]
 
-        if os.path.exists(filename):
-            with open(filename, 'r') as file:
-                data = json.load(file)
-                for entry in data:
-                    entry_date_hour = entry['timestamp'][:13]
-                    if entry_date_hour == current_date_hour:
-                        return True
-        return False
+        try:
+            if os.path.exists(filename):
+                with open(filename, 'r') as file:
+                    data = json.load(file)
+                    for entry in data:
+                        entry_date_hour = entry['timestamp'][:13]
+                        if entry_date_hour == current_date_hour:
+                            return True
+            return False
+        except Exception as e:
+            print(f"Error checking entry existence for {region} region: {e}")
+            return False
 
     def update_total_cost_file(self, region, total_cost):
         """Updates the total cost file for the region with a new data entry."""
@@ -71,46 +74,43 @@ class AuctionDataFetcher:
         now = datetime.datetime.now().isoformat()
         entry = {'timestamp': now, 'total_cost': total_cost}
         
-        if os.path.exists(filename):
-            with open(filename, 'r+') as file:
-                data = json.load(file)
-                data.append(entry)
-                file.seek(0)
-                json.dump(data, file)
-        else:
-            with open(filename, 'w') as file:
-                json.dump([entry], file)
+        try:
+            if os.path.exists(filename):
+                with open(filename, 'r+') as file:
+                    data = json.load(file)
+                    data.append(entry)
+                    file.seek(0)
+                    json.dump(data, file)
+            else:
+                with open(filename, 'w') as file:
+                    json.dump([entry], file)
 
-        backup_folder = '/data/backup'
-        os.makedirs(backup_folder, exist_ok=True)
-        backup_path = os.path.join(backup_folder, f'total_cost_{region}.json')
-        shutil.copy(filename, backup_path)
+            backup_folder = '/data/backup'
+            os.makedirs(backup_folder, exist_ok=True)
+            backup_path = os.path.join(backup_folder, f'total_cost_{region}.json')
+            shutil.copy(filename, backup_path)
+        except Exception as e:
+            print(f"Error updating total cost file for {region} region: {e}")
 
     def save_latest_data(self, latest_data):
         """Saves the latest data for all regions into a single JSON file."""
         filename = '/data/latest_total_costs.json'
-        with open(filename, 'w') as file:
-            json.dump(latest_data, file)
-        print(f"Latest data saved to {filename}.")
-
-    def calculate_total_cost(self, auction_data, parts_data):
-        """Calculates the total cost based on the lowest prices and amounts needed."""
-        item_id_to_name = {item['item_id']: item['item_name'] for part_data in parts_data.values() for item in part_data}
-        lowest_prices = {}
-        for auction in auction_data['auctions']:
-            item_id = auction['item']['id']
-            unit_price = auction['unit_price']
-            if item_id in item_id_to_name and (item_id not in lowest_prices or unit_price < lowest_prices[item_id]):
-                lowest_prices[item_id] = unit_price
-        total_costs = {part: sum(lowest_prices.get(item['item_id'], 0) * item['amount_needed'] for item in items) for part, items in parts_data.items()}
-        overall_total_cost = sum(total_costs.values())
-        return overall_total_cost, total_costs
+        try:
+            with open(filename, 'w') as file:
+                json.dump(latest_data, file)
+            print(f"Latest data saved to {filename}.")
+        except Exception as e:
+            print(f"Error saving latest data: {e}")
 
     def run(self):
         client_id = os.getenv("CLIENT_ID")
         client_secret = os.getenv("CLIENT_SECRET")
         access_token = self.get_access_token(client_id, client_secret)
         
+        if access_token is None:
+            print("Failed to acquire access token. Exiting.")
+            return False
+
         latest_data = []
         regions = ['us', 'eu', 'tw', 'kr']
         for region in regions:
@@ -122,6 +122,10 @@ class AuctionDataFetcher:
 
             auction_data = self.fetch_data(region, access_token)
             
+            if auction_data is None:
+                print(f"Failed to fetch auction data for {region} region. Skipping.")
+                continue
+
             auction_data_filename = f'/data/auction_data/auction_data_{region}.json'
             self.save_data_as_json(auction_data_filename, auction_data)
             print(f'Auction data for {region} region saved to {auction_data_filename}.')
