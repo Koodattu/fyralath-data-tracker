@@ -19,8 +19,8 @@
         pricesContainer.innerHTML = "<p>Fetching data...</p>";
 
         //fetch("https://osseydanger.duckdns.org:5000/api/data")
-        //fetch("https://danger.osseyman.com:5000/api/data")
-        fetch("http://192.168.38.104:5000/api/data")
+        fetch("https://danger.osseyman.com:5000/api/data")
+          //fetch("http://192.168.38.104:5000/api/data")
           .then((response) => {
             if (!response.ok) {
               throw new Error("Unable to fetch data");
