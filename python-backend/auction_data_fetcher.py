@@ -41,6 +41,27 @@ class AuctionDataFetcher:
             print(f"Error fetching data for {region} region: {e}")
             return None
 
+    def get_or_fetch_auction_data(self, region, access_token):
+        """Attempts to read auction data from a local file, and fetches it if not found."""
+        auction_data_filename = f'./data/auction_data/auction_data_{region}.json'
+
+        # Check if the auction data file exists and has content
+        try:
+            if os.path.exists(auction_data_filename) and os.path.getsize(auction_data_filename) > 0:
+                print(f'Using existing auction data for {region} region.')
+                with open(auction_data_filename, 'r') as file:
+                    auction_data = json.load(file)
+                return auction_data
+        except Exception as e:
+            print(f"Error reading existing auction data for {region} region: {e}")
+
+        # If file doesn't exist or is empty, fetch new data
+        print(f'Fetching new auction data for {region} region.')
+        auction_data = self.fetch_data(region, access_token)
+        if auction_data is not None:
+            self.save_data_as_json(auction_data_filename, auction_data)
+        return auction_data
+
     def save_data_as_json(self, filename, data):
         """Saves the fetched data as a JSON file."""
         directory = os.path.dirname(filename)
@@ -98,98 +119,147 @@ class AuctionDataFetcher:
         except Exception as e:
             print(f"Error updating total cost file for {region} region: {e}")
 
-    def save_latest_data(self, latest_data):
-        """Saves the latest data for all regions into a single JSON file."""
-        filename = './data/latest_total_costs.json'
+    def calculate_total_cost(self, auction_data, components_data, items_data):
+        # First, update auction item prices in items_data
+        for auction in auction_data['auctions']:
+            item_id = auction['item']['id']
+            unit_price = auction.get('unit_price', auction.get('buyout'))
+            if item_id in items_data and (items_data[item_id]['price'] is None or unit_price < items_data[item_id]['price']):
+                items_data[item_id]['price'] = unit_price
+
+        # Then, calculate component prices
+        for component_id, component_info in components_data.items():
+            component_total_cost = 0
+            for part in component_info['parts']:
+                item_id = part['item_id']
+                amount_needed = part['amount_needed']
+                if item_id in items_data and items_data[item_id]['price'] is not None:
+                    component_total_cost += items_data[item_id]['price'] * amount_needed
+            items_data[component_id]['price'] = component_total_cost  # Update component price in items_data
+
+        # Finally, calculate prices for final items based on components
+        for item_id, item_info in items_data.items():
+            if 'components' in item_info:
+                final_price = sum(items_data[comp_id]['price'] for comp_id in item_info['components'] if items_data[comp_id]['price'] is not None)
+                items_data[item_id]['price'] = final_price
+
+        # Prepare data for saving, only include items with non-null prices
+        latest_data = []
+        for item_id, item_info in items_data.items():
+            if item_info['price'] is not None:
+                latest_data.append({'item_id': item_id, 'name': item_info['name'], 'price': item_info['price']})
+        return latest_data
+
+    def save_latest_data(self, aggregated_data):
+        filename = './data/latest_item_prices.json'
+        timestamp = datetime.datetime.now().isoformat()
+        data_with_timestamp = {
+            'timestamp': timestamp,
+            'data': aggregated_data
+        }
+
         try:
             if not os.path.exists(os.path.dirname(filename)):
                 os.makedirs(os.path.dirname(filename))
-            
-            with open(filename, 'w') as file:
-                json.dump(latest_data, file)
-            print(f"Latest data saved to {filename}.")
-        except Exception as e:
-            print(f"Error saving latest data: {e}")
 
-    def calculate_total_cost(self, auction_data, parts_data):
-        """Calculates the total cost based on the lowest prices and amounts needed."""
-        item_id_to_name = {item['item_id']: item['item_name'] for part_data in parts_data.values() for item in part_data}
-        lowest_prices = {}
-        for auction in auction_data['auctions']:
-            item_id = auction['item']['id']
-            unit_price = auction['unit_price']
-            if item_id in item_id_to_name and (item_id not in lowest_prices or unit_price < lowest_prices[item_id]):
-                lowest_prices[item_id] = unit_price
-        total_costs = {part: sum(lowest_prices.get(item['item_id'], 0) * item['amount_needed'] for item in items) for part, items in parts_data.items()}
-        overall_total_cost = sum(total_costs.values())
-        return overall_total_cost, total_costs
+            with open(filename, 'w') as file:
+                json.dump(data_with_timestamp, file)
+            print(f"Latest item prices saved to {filename}.")
+        except Exception as e:
+            print(f"Error saving latest item prices: {e}")
 
     def run(self):
         client_id = os.getenv("CLIENT_ID")
         client_secret = os.getenv("CLIENT_SECRET")
         access_token = self.get_access_token(client_id, client_secret)
-        
+
         if access_token is None:
             print("Failed to acquire access token. Exiting.")
             return False
-
-        latest_data = []
+    
+        aggregated_data = {}
         regions = ['us', 'eu', 'tw', 'kr']
         for region in regions:
-            print(f'Fetching and processing data for {region} region.')
-            
+            print(f'Processing data for {region} region.')
+
             if self.entry_exists_for_current_hour(region):
                 print(f'Entry for the current hour already exists for {region} region. Skipping.')
                 continue
 
-            auction_data = self.fetch_data(region, access_token)
-            
+            auction_data = self.get_or_fetch_auction_data(region, access_token)
             if auction_data is None:
-                print(f"Failed to fetch auction data for {region} region. Skipping.")
+                print(f"Failed to obtain auction data for {region} region. Skipping.")
                 continue
 
-            auction_data_filename = f'./data/auction_data/auction_data_{region}.json'
-            self.save_data_as_json(auction_data_filename, auction_data)
-            print(f'Auction data for {region} region saved to {auction_data_filename}.')
-
-            parts_data = {
-                'grip': [
-                    {'item_id': 205413, 'item_name': 'obsidian cobraskin', 'amount_needed': 3},
-                    {'item_id': 208212, 'item_name': 'dreaming essence', 'amount_needed': 5},
-                    {'item_id': 193230, 'item_name': 'mireslush hide', 'amount_needed': 50},
-                    {'item_id': 204460, 'item_name': 'zaralek glowspores', 'amount_needed': 400},
-                ],
-                'vellum': [
-                    {'item_id': 190324, 'item_name': 'awakened order', 'amount_needed': 50},
-                    {'item_id': 190316, 'item_name': 'awakened earth', 'amount_needed': 100},
-                    {'item_id': 190321, 'item_name': 'awakened fire', 'amount_needed': 150},
-                    {'item_id': 200113, 'item_name': 'resonant crystal', 'amount_needed': 200},
-                ],
-                'rune': [
-                    {'item_id': 204464, 'item_name': 'shadowflame essence', 'amount_needed': 10},
-                    {'item_id': 194863, 'item_name': 'runed writhebark', 'amount_needed': 50},
-                    {'item_id': 194755, 'item_name': 'cosmic ink', 'amount_needed': 250},
-                ],
+            components_data = {
+                # Component for Erden's Dreamleaf Grip
+                209351: {  
+                    'parts': [
+                        {'item_id': 205413, 'amount_needed': 3},  # Obsidian Cobraskin
+                        {'item_id': 208212, 'amount_needed': 5},  # Dreaming Essence
+                        {'item_id': 193230, 'amount_needed': 50},  # Mireslush Hide
+                        {'item_id': 204460, 'amount_needed': 400},  # Zaralek Glowspores
+                    ]
+                },
+                # Component for Shalasar's Sophic Vellum
+                210003: {  
+                    'parts': [
+                        {'item_id': 190324, 'amount_needed': 50},  # Awakened Order
+                        {'item_id': 190316, 'amount_needed': 100},  # Awakened Earth
+                        {'item_id': 190321, 'amount_needed': 150},  # Awakened Fire
+                        {'item_id': 200113, 'amount_needed': 200},  # Resonant Crystal
+                    ]
+                },
+                # Component for Lydiara's Binding Rune
+                209998: {  
+                    'parts': [
+                        {'item_id': 204464, 'amount_needed': 10},  # Shadowflame Essence
+                        {'item_id': 194863, 'amount_needed': 50},  # Runed Writhebark
+                        {'item_id': 194755, 'amount_needed': 250},  # Cosmic Ink
+                    ]
+                },
+                # Component for Fyr'alath the Dreamrender
+                207728: {  
+                    'parts': [
+                        {'item_id': 209351, 'amount_needed': 1},  # Erden's Dreamleaf Grip
+                        {'item_id': 210003, 'amount_needed': 1},  # Shalasar's Sophic Vellum
+                        {'item_id': 209998, 'amount_needed': 1}  # Lydiara's Binding Rune
+                    ]
+                }
             }
 
-            overall_total_cost, _ = self.calculate_total_cost(auction_data, parts_data)
-            print(f'Total cost for {region} region: {overall_total_cost}')
+            items_data = {
+                207728: {"name": "Fyr'alath the Dreamrender", "price": None},
+                209351: {"name": "Erden's Dreamleaf Grip", "price": None},
+                210003: {"name": "Shalasar's Sophic Vellum", "price": None},
+                209998: {"name": "Lydiara's Binding Rune", "price": None},
+                205413: {"name": "Obsidian Cobraskin", "price": None},
+                208212: {"name": "Dreaming Essence", "price": None},
+                193230: {"name": "Mireslush Hide", "price": None},
+                204460: {"name": "Zaralek Glowspores", "price": None},
+                190324: {"name": "Awakened Order", "price": None},
+                190316: {"name": "Awakened Earth", "price": None},
+                190321: {"name": "Awakened Fire", "price": None},
+                200113: {"name": "Resonant Crystal", "price": None},
+                204464: {"name": "Shadowflame Essence", "price": None},
+                194863: {"name": "Runed Writhebark", "price": None},
+                194755: {"name": "Cosmic Ink", "price": None}
+            }
 
-            latest_data.append({
-                'region': region,
-                'total_cost': overall_total_cost,
-                'timestamp': datetime.datetime.now().isoformat()
-            })
+            region_data = self.calculate_total_cost(auction_data, components_data, items_data)
 
-            self.update_total_cost_file(region, overall_total_cost)
-            print(f'Total cost for {region} region updated.')
+            # Store the data for the current region
+            aggregated_data[region] = region_data
 
-        if not latest_data:
+        # Save the latest data for all regions if there's any data to save
+        if aggregated_data:
+            self.save_latest_data(aggregated_data)
+            print("Data processing and saving completed for all regions.")
+        else:
             print("No new data fetched. Exiting.")
-            return False
-        
-        self.save_latest_data(latest_data)
+
         return True
+
 
 if __name__ == '__main__':
     auction_fetcher = AuctionDataFetcher()

@@ -8,7 +8,32 @@
       .error-message {
         color: red;
       }
+
+      *,
+      *:before,
+      *:after {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        padding: 0;
+      }
+
+      .region-container {
+        margin-bottom: 20px;
+      }
+
+      .item {
+        margin-bottom: 10px;
+      }
     </style>
+  </head>
+  <body>
+    <h1>Auction House Prices by Item and Region</h1>
+    <div id="prices-container"></div>
+
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         fetchData();
@@ -18,16 +43,15 @@
         const pricesContainer = document.getElementById("prices-container");
         pricesContainer.innerHTML = "<p>Fetching data...</p>";
 
-        //fetch("https://osseydanger.duckdns.org:5000/api/data")
-        fetch("https://danger.osseyman.com:5000/api/data")
-          //fetch("http://192.168.38.104:5000/api/data")
+        // Adjust the fetch URL as necessary
+        fetch("http://192.168.38.104:5000/api/data/current")
           .then((response) => {
             if (!response.ok) {
               throw new Error("Unable to fetch data");
             }
             return response.json();
           })
-          .then((data) => displayPrices(data))
+          .then((data) => displayPrices(data.data))
           .catch((error) => displayError(error));
       }
 
@@ -35,19 +59,31 @@
         const pricesContainer = document.getElementById("prices-container");
         pricesContainer.innerHTML = "";
 
-        data.forEach((item) => {
-          const { region, total_cost } = item;
-          const gold = Math.floor(total_cost / 10000);
-          const silver = Math.floor((total_cost % 10000) / 100);
-          const copper = total_cost % 100;
-
+        Object.keys(data).forEach((region) => {
           const regionElement = document.createElement("div");
-          regionElement.innerHTML = `
-                    <h3>${region.toUpperCase()}</h3>
-                    <p>Total Cost: ${gold.toLocaleString("fi-FI")} gold</p>
-                `;
+          regionElement.className = "region-container";
+
+          let itemsHtml = `<h2>${region.toUpperCase()}</h2>`;
+          data[region].forEach((item) => {
+            const wowheadUrl = `https://www.wowhead.com/item=${item.item_id}`;
+            itemsHtml += `
+                        <div class="item">
+                            <a href="${wowheadUrl}" target="_blank">${item.name}</a>
+                            - Price: ${formatPrice(item.price)}
+                        </div>
+                    `;
+          });
+
+          regionElement.innerHTML = itemsHtml;
           pricesContainer.appendChild(regionElement);
         });
+      }
+
+      function formatPrice(price) {
+        const gold = Math.floor(price / 10000);
+        const silver = Math.floor((price % 10000) / 100);
+        const copper = price % 100;
+        return `${gold.toLocaleString()} gold, ${silver} silver, ${copper} copper`;
       }
 
       function displayError(error) {
@@ -55,9 +91,5 @@
         pricesContainer.innerHTML = `<p class="error-message">Error fetching data: ${error.message}</p>`;
       }
     </script>
-  </head>
-  <body>
-    <h1>Fyr'alath current price to craft per region</h1>
-    <div id="prices-container"></div>
   </body>
 </html>

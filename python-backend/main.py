@@ -29,9 +29,18 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(1)
 
-@app.route('/api/data', methods=['GET'])
+@app.route('/api/data/current', methods=['GET'])
 @cache.cached(timeout=None)  # Cache the response indefinitely
-def get_data():
+def get_current_data():
+    print("Get data called")
+    with open('./data/latest_item_prices.json') as file:
+        data = json.load(file)
+    return data
+
+
+@app.route('/api/data/history', methods=['GET'])
+@cache.cached(timeout=None)  # Cache the response indefinitely
+def get_history_data():
     print("Get data called")
     with open('./data/latest_total_costs.json') as file:
         data = json.load(file)
