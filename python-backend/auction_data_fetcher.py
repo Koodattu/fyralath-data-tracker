@@ -119,36 +119,45 @@ class AuctionDataFetcher:
         except Exception as e:
             print(f"Error updating total cost file for {region} region: {e}")
 
-    def calculate_total_cost(self, auction_data, components_data, items_data):
-        # First, update auction item prices in items_data
+    def calculate_total_cost(self, auction_data, base_json, item_ids):
+
+        # Helper function to update item prices in the JSON structure
+        def update_item_prices(parts, auction_prices):
+            for part in parts:
+                if part['id'] in auction_prices:
+                    part['price'] = auction_prices[part['id']]
+                if 'parts' in part:
+                    update_item_prices(part['parts'], auction_prices)
+
+        # Extract auction prices for relevant item IDs
+        auction_prices = {}
         for auction in auction_data['auctions']:
             item_id = auction['item']['id']
             unit_price = auction.get('unit_price', auction.get('buyout'))
-            if item_id in items_data and (items_data[item_id]['price'] is None or unit_price < items_data[item_id]['price']):
-                items_data[item_id]['price'] = unit_price
+            if item_id in item_ids:
+                # Update the price if it's lower than an existing price or if it hasn't been set
+                if item_id not in auction_prices or unit_price < auction_prices[item_id]:
+                    auction_prices[item_id] = unit_price
 
-        # Then, calculate component prices
-        for component_id, component_info in components_data.items():
-            component_total_cost = 0
-            for part in component_info['parts']:
-                item_id = part['item_id']
-                amount_needed = part['amount_needed']
-                if item_id in items_data and items_data[item_id]['price'] is not None:
-                    component_total_cost += items_data[item_id]['price'] * amount_needed
-            items_data[component_id]['price'] = component_total_cost  # Update component price in items_data
+        # Update item prices in the base JSON structure
+        if 'parts' in base_json:
+            update_item_prices(base_json['parts'], auction_prices)
 
-        # Finally, calculate prices for final items based on components
-        for item_id, item_info in items_data.items():
-            if 'components' in item_info:
-                final_price = sum(items_data[comp_id]['price'] for comp_id in item_info['components'] if items_data[comp_id]['price'] is not None)
-                items_data[item_id]['price'] = final_price
+        # Recalculate prices for composite items
+        def recalculate_composite_item_prices(parts):
+            for part in parts:
+                if 'parts' in part:
+                    part['price'] = sum(p.get('price', 0) * p.get('amount_needed', 1) for p in part['parts'] if p.get('price') is not None)
+                    recalculate_composite_item_prices(part['parts'])
 
-        # Prepare data for saving, only include items with non-null prices
-        latest_data = []
-        for item_id, item_info in items_data.items():
-            if item_info['price'] is not None:
-                latest_data.append({'item_id': item_id, 'name': item_info['name'], 'price': item_info['price']})
-        return latest_data
+        def update_composite_items_price(base_json):
+            base_json['price'] = sum(part.get('price', 0) * part.get('amount_needed', 1) for part in base_json['parts'])
+
+        # After updating all item prices based on auction data and recalculating component prices
+        recalculate_composite_item_prices(base_json['parts'])
+        update_composite_items_price(base_json)  # Ensures composite item prices are correctly summed up
+
+        return base_json
 
     def save_latest_data(self, aggregated_data):
         filename = './data/latest_item_prices.json'
@@ -168,6 +177,28 @@ class AuctionDataFetcher:
         except Exception as e:
             print(f"Error saving latest item prices: {e}")
 
+    def read_base_json(self):
+        try:
+            with open('base.json', 'r') as file:
+                return json.load(file)
+        except Exception as e:
+            print(f"Error reading base JSON: {e}")
+            return None
+
+    def extract_item_ids(self, base_json):
+        item_ids = set()
+    
+        def traverse_parts(parts):
+            for part in parts:
+                item_ids.add(part['id'])
+                if 'parts' in part:
+                    traverse_parts(part['parts'])
+    
+        if 'parts' in base_json:
+            traverse_parts(base_json['parts'])
+    
+        return list(item_ids)
+
     def run(self):
         client_id = os.getenv("CLIENT_ID")
         client_secret = os.getenv("CLIENT_SECRET")
@@ -176,8 +207,13 @@ class AuctionDataFetcher:
         if access_token is None:
             print("Failed to acquire access token. Exiting.")
             return False
-    
-        aggregated_data = {}
+
+        base_json = self.read_base_json()
+        if not base_json:
+            print("Failed to read base JSON structure. Exiting.")
+            return False
+
+        aggregated_data = []
         regions = ['us', 'eu', 'tw', 'kr']
         for region in regions:
             print(f'Processing data for {region} region.')
@@ -191,65 +227,12 @@ class AuctionDataFetcher:
                 print(f"Failed to obtain auction data for {region} region. Skipping.")
                 continue
 
-            components_data = {
-                # Component for Erden's Dreamleaf Grip
-                209351: {  
-                    'parts': [
-                        {'item_id': 205413, 'amount_needed': 3},  # Obsidian Cobraskin
-                        {'item_id': 208212, 'amount_needed': 5},  # Dreaming Essence
-                        {'item_id': 193230, 'amount_needed': 50},  # Mireslush Hide
-                        {'item_id': 204460, 'amount_needed': 400},  # Zaralek Glowspores
-                    ]
-                },
-                # Component for Shalasar's Sophic Vellum
-                210003: {  
-                    'parts': [
-                        {'item_id': 190324, 'amount_needed': 50},  # Awakened Order
-                        {'item_id': 190316, 'amount_needed': 100},  # Awakened Earth
-                        {'item_id': 190321, 'amount_needed': 150},  # Awakened Fire
-                        {'item_id': 200113, 'amount_needed': 200},  # Resonant Crystal
-                    ]
-                },
-                # Component for Lydiara's Binding Rune
-                209998: {  
-                    'parts': [
-                        {'item_id': 204464, 'amount_needed': 10},  # Shadowflame Essence
-                        {'item_id': 194863, 'amount_needed': 50},  # Runed Writhebark
-                        {'item_id': 194755, 'amount_needed': 250},  # Cosmic Ink
-                    ]
-                },
-                # Component for Fyr'alath the Dreamrender
-                207728: {  
-                    'parts': [
-                        {'item_id': 209351, 'amount_needed': 1},  # Erden's Dreamleaf Grip
-                        {'item_id': 210003, 'amount_needed': 1},  # Shalasar's Sophic Vellum
-                        {'item_id': 209998, 'amount_needed': 1}  # Lydiara's Binding Rune
-                    ]
-                }
-            }
+            item_ids = self.extract_item_ids(base_json)
 
-            items_data = {
-                207728: {"name": "Fyr'alath the Dreamrender", "price": None},
-                209351: {"name": "Erden's Dreamleaf Grip", "price": None},
-                210003: {"name": "Shalasar's Sophic Vellum", "price": None},
-                209998: {"name": "Lydiara's Binding Rune", "price": None},
-                205413: {"name": "Obsidian Cobraskin", "price": None},
-                208212: {"name": "Dreaming Essence", "price": None},
-                193230: {"name": "Mireslush Hide", "price": None},
-                204460: {"name": "Zaralek Glowspores", "price": None},
-                190324: {"name": "Awakened Order", "price": None},
-                190316: {"name": "Awakened Earth", "price": None},
-                190321: {"name": "Awakened Fire", "price": None},
-                200113: {"name": "Resonant Crystal", "price": None},
-                204464: {"name": "Shadowflame Essence", "price": None},
-                194863: {"name": "Runed Writhebark", "price": None},
-                194755: {"name": "Cosmic Ink", "price": None}
-            }
-
-            region_data = self.calculate_total_cost(auction_data, components_data, items_data)
-
-            # Store the data for the current region
-            aggregated_data[region] = region_data
+            # Now, instead of using a reversed list, update prices in base_json directly using extracted item_ids
+            # Then, recalculate composite item prices based on updated auction prices
+            region_data = self.calculate_total_cost(auction_data, base_json, item_ids)
+            aggregated_data.append({"region": region, "data": region_data})
 
         # Save the latest data for all regions if there's any data to save
         if aggregated_data:
@@ -259,7 +242,6 @@ class AuctionDataFetcher:
             print("No new data fetched. Exiting.")
 
         return True
-
 
 if __name__ == '__main__':
     auction_fetcher = AuctionDataFetcher()
