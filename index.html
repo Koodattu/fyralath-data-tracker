@@ -44,7 +44,7 @@
           const regionElement = document.createElement("div");
           regionElement.innerHTML = `
                     <h3>${region.toUpperCase()}</h3>
-                    <p>Total Cost: ${gold.toLocaleString()} gold, ${silver} silver, ${copper} copper</p>
+                    <p>Total Cost: ${gold.toLocaleString("fi-FI")} gold</p>
                 `;
           pricesContainer.appendChild(regionElement);
         });

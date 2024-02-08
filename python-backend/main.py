@@ -7,6 +7,7 @@ import schedule
 import threading
 import time
 import socket
+from waitress import serve
 
 app = Flask(__name__)
 CORS(app)
@@ -32,7 +33,7 @@ def run_scheduler():
 @cache.cached(timeout=None)  # Cache the response indefinitely
 def get_data():
     print("Get data called")
-    with open('latest_total_costs.json') as file:
+    with open('./data/latest_total_costs.json') as file:
         data = json.load(file)
     return data
 
@@ -61,4 +62,5 @@ if __name__ == '__main__':
     # Start the Flask app using the local IP address
     local_ip = get_local_ip()
     print(f"Flask app starting on http://{local_ip}:5000")
-    app.run(host=local_ip)
+    #app.run(host=local_ip)
+    serve(app, host=local_ip, port=5000)
