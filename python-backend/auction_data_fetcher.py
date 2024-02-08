@@ -52,7 +52,7 @@ class AuctionDataFetcher:
 
     def entry_exists_for_current_hour(self, region):
         """Checks if an entry for the current year, month, day, and hour exists in the file."""
-        filename = f'total_cost_{region}.json'
+        filename = f'/data/total_cost_{region}.json'
         now = datetime.datetime.now().isoformat()
         current_date_hour = now[:13]
 
@@ -67,7 +67,7 @@ class AuctionDataFetcher:
 
     def update_total_cost_file(self, region, total_cost):
         """Updates the total cost file for the region with a new data entry."""
-        filename = f'total_cost_{region}.json'
+        filename = f'/data/total_cost_{region}.json'
         now = datetime.datetime.now().isoformat()
         entry = {'timestamp': now, 'total_cost': total_cost}
         
@@ -81,14 +81,14 @@ class AuctionDataFetcher:
             with open(filename, 'w') as file:
                 json.dump([entry], file)
 
-        backup_folder = 'backup'
+        backup_folder = '/data/backup'
         os.makedirs(backup_folder, exist_ok=True)
-        backup_path = os.path.join(backup_folder, filename)
+        backup_path = os.path.join(backup_folder, f'total_cost_{region}.json')
         shutil.copy(filename, backup_path)
 
     def save_latest_data(self, latest_data):
         """Saves the latest data for all regions into a single JSON file."""
-        filename = 'latest_total_costs.json'
+        filename = '/data/latest_total_costs.json'
         with open(filename, 'w') as file:
             json.dump(latest_data, file)
         print(f"Latest data saved to {filename}.")
@@ -122,7 +122,7 @@ class AuctionDataFetcher:
 
             auction_data = self.fetch_data(region, access_token)
             
-            auction_data_filename = f'auction_data_{region}.json'
+            auction_data_filename = f'/data/auction_data/auction_data_{region}.json'
             self.save_data_as_json(auction_data_filename, auction_data)
             print(f'Auction data for {region} region saved to {auction_data_filename}.')
 

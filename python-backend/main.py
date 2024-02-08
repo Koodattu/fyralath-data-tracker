@@ -62,5 +62,3 @@ if __name__ == '__main__':
     local_ip = get_local_ip()
     print(f"Flask app starting on http://{local_ip}:5000")
     app.run(host=local_ip)
-
-    print("Flask app started")
