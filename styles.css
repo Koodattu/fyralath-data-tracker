@@ -1,0 +1,82 @@
+* {
+  padding: 0;
+  margin: 0;
+  font-family: Arial;
+}
+
+body {
+  padding: 20px;
+  background-color: rgb(32, 32, 32);
+  color: white;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  padding: 20px;
+}
+
+a {
+  text-decoration: none;
+}
+
+.item {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* Example rarity colors */
+.common {
+  color: #ffffff;
+}
+.uncommon {
+  color: #1eff00;
+}
+.rare {
+  color: #0070dd;
+}
+.epic {
+  color: #a335ee;
+}
+.legendary {
+  color: #ff8000;
+}
+
+.gold-icon {
+  width: 16px;
+  height: 16px;
+  background-image: url("https://wow.zamimg.com/images/icons/money-gold.gif"); /* Path to your gold icon image */
+  display: inline-block;
+  background-size: contain;
+  margin-right: 4px;
+}
+
+.price {
+  color: white;
+}
+
+.calculation {
+  display: none; /* Hide calculation by default */
+}
+
+.show-calculation .calculation {
+  display: inline; /* Only show when this class is added */
+}
+
+.hide-calculation .not-calculation {
+  display: none; /* Hide when this class is added */
+}
