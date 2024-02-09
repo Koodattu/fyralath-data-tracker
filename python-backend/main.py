@@ -70,6 +70,9 @@ if __name__ == '__main__':
 
     # Start the Flask app using the local IP address
     local_ip = get_local_ip()
-    print(f"Flask app starting on http://{local_ip}:5000")
+    port = 5000
+    print("Flask app starting")
+    print(f"http://{local_ip}:{port}/api/data/current")
+    print(f"http://{local_ip}:{port}/api/data/history")
     #app.run(host=local_ip)
-    serve(app, host=local_ip, port=5000)
+    serve(app, host=local_ip, port=port)
