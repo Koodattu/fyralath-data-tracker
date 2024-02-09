@@ -87,6 +87,7 @@
     </style>
   </head>
   <body>
+    <div id="lastUpdated">Last Updated: <span id="timestamp">Loading...</span></div>
     <h1>Auction House Prices by Item and Region</h1>
     <label> <input type="checkbox" id="toggleCalculation" /> Show Price Calculations </label>
     <table id="price-table">
@@ -121,7 +122,18 @@
         const response = await fetch("python-backend/data/latest_item_prices.json");
         const data = await response.json();
 
+        // Update the timestamp display
+        document.getElementById("timestamp").textContent = formatTimestamp(data.timestamp);
+
         processAndDisplayData(data);
+      }
+
+      // Helper function to format the timestamp (optional)
+      function formatTimestamp(timestamp) {
+        // Assuming the timestamp is in ISO format, e.g., "2024-02-08T23:52:02.887160"
+        // Convert to a more readable format
+        const date = new Date(timestamp);
+        return date.toLocaleString("fi-FI"); // Adjust formatting as needed
       }
 
       function processAndDisplayData(data) {
@@ -212,7 +224,7 @@
       }
 
       function formatGold(price) {
-        return Math.floor(price / 10000).toLocaleString();
+        return Math.floor(price / 10000).toLocaleString("fi-FI");
       }
 
       function getQualityClass(quality) {
