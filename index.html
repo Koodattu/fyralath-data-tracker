@@ -84,6 +84,10 @@
       .show-calculation .calculation {
         display: inline; /* Only show when this class is added */
       }
+
+      .hide-calculation .not-calculation {
+        display: none; /* Hide when this class is added */
+      }
     </style>
   </head>
   <body>
@@ -111,8 +115,10 @@
           const table = document.querySelector("#price-table");
           if (this.checked) {
             table.classList.add("show-calculation");
+            table.classList.add("hide-calculation");
           } else {
             table.classList.remove("show-calculation");
+            table.classList.remove("hide-calculation");
           }
         });
       });
@@ -203,22 +209,33 @@
           const row = document.createElement("tr");
           row.innerHTML = `<td><a href="https://www.wowhead.com/item=${id.split("-").pop()}" class="${getQualityClass(
             details.quality
-          )}" data-wowhead="item=${id.split("-").pop()}">${details.name}</a></td>
-                         ${["eu", "us", "tw", "kr"]
-                           .map((region) => {
-                             const price = details.prices[region] || 0;
-                             const amountNeeded = details.amountNeeded[region];
-                             const totalPrice = amountNeeded ? price * amountNeeded : price;
-                             // Inside the displayItems function, adjust the row.innerHTML assignment:
-                             return `<td>${formatGold(price)} <span class="gold-icon"></span>${
-                               amountNeeded
-                                 ? `<span class="calculation"> x ${amountNeeded} = ${formatGold(
-                                     totalPrice
-                                   )} <span class="gold-icon"></span></span>`
-                                 : ""
-                             }</td>`;
-                           })
-                           .join("")}`;
+          )}" data-wowhead="item=${id.split("-").pop()}">${details.name}</a>${
+            Object.values(details.amountNeeded).some((amount) => amount)
+              ? `<span class="white-text calculation"> x ${
+                  Object.values(details.amountNeeded).find((amount) => amount) || "</span>"
+                }`
+              : ""
+          }</td>
+                        ${["eu", "us", "tw", "kr"]
+                          .map((region) => {
+                            const price = details.prices[region] || 0;
+                            const amountNeeded = details.amountNeeded[region];
+                            const totalPrice = amountNeeded ? price * amountNeeded : price;
+                            if (amountNeeded) {
+                              return `<td><span class="not-calculation">${formatGold(
+                                price
+                              )} <span class="gold-icon"></span></span>${
+                                amountNeeded
+                                  ? `<span class="calculation">${formatGold(
+                                      totalPrice
+                                    )} <span class="gold-icon"></span></span>`
+                                  : ""
+                              }</td>`;
+                            } else {
+                              return `<td>${formatGold(price)} <span class="gold-icon"></span></td>`;
+                            }
+                          })
+                          .join("")}`;
           tbody.appendChild(row);
         });
       }
