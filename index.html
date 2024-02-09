@@ -18,6 +18,18 @@
         color: white;
       }
 
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
       .grid-container {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -64,79 +76,146 @@
       .price {
         color: white;
       }
+
+      .calculation {
+        display: none; /* Hide calculation by default */
+      }
+
+      .show-calculation .calculation {
+        display: inline; /* Only show when this class is added */
+      }
     </style>
   </head>
   <body>
     <h1>Auction House Prices by Item and Region</h1>
-    <div id="items-grid" class="grid-container"></div>
+    <label> <input type="checkbox" id="toggleCalculation" /> Show Price Calculations </label>
+    <table id="price-table">
+      <thead>
+        <tr>
+          <th>Item Name</th>
+          <th>EU Prices</th>
+          <th>US Prices</th>
+          <th>TW Prices</th>
+          <th>KR Prices</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Data rows will be inserted here by JavaScript -->
+      </tbody>
+    </table>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         fetchData();
+        document.getElementById("toggleCalculation").addEventListener("change", function () {
+          const table = document.querySelector("#price-table");
+          if (this.checked) {
+            table.classList.add("show-calculation");
+          } else {
+            table.classList.remove("show-calculation");
+          }
+        });
       });
 
       async function fetchData() {
         // Simulating a fetch request - replace with actual fetch from your backend
         const response = await fetch("python-backend/data/latest_item_prices.json");
-        const json = await response.json();
+        const data = await response.json();
 
-        displayData(json);
+        processAndDisplayData(data);
       }
 
-      function displayData(data) {
-        const grid = document.getElementById("items-grid");
-        data.data.forEach((region) => {
-          const regionContainer = document.createElement("div");
-          regionContainer.innerHTML = `<h2>${region.region.toUpperCase()}</h2>`;
-          displayMainItem(region.data, regionContainer);
-          grid.appendChild(regionContainer);
+      function processAndDisplayData(data) {
+        const itemsMap = new Map();
+
+        // Directly process each region's top-level item and its parts
+        data.data.forEach((regionData) => {
+          const topLevelItem = regionData.data;
+          // Ensure the top-level item is correctly identified and processed
+          processTopLevelItem(topLevelItem, itemsMap, regionData.region);
+          // Process parts of the top-level item
+          processParts(topLevelItem.parts, itemsMap, regionData.region);
+        });
+
+        displayItems(itemsMap);
+      }
+
+      function processTopLevelItem(item, itemsMap, region) {
+        const itemKey = `item-${item.id}`;
+        if (!itemsMap.has(itemKey)) {
+          itemsMap.set(itemKey, {
+            name: item.name,
+            quality: item.quality,
+            prices: {},
+            amountNeeded: {}, // Top-level might not need this, but keeping structure consistent
+          });
+        }
+        // Assign the top-level item's price for the current region
+        itemsMap.get(itemKey).prices[region] = item.price;
+      }
+
+      function processParts(parts, itemsMap, region) {
+        parts.forEach((part) => {
+          const partKey = `item-${part.id}`;
+          if (!itemsMap.has(partKey)) {
+            itemsMap.set(partKey, createItemEntry(part, region));
+          } else {
+            itemsMap.get(partKey).prices[region] = part.price;
+            if (part.amount_needed) {
+              itemsMap.get(partKey).amountNeeded[region] = part.amount_needed;
+            }
+          }
+
+          if (part.parts) {
+            processParts(part.parts, itemsMap, region);
+          }
         });
       }
 
-      function displayMainItem(itemData, container) {
-        const mainItemElement = createItemElement(itemData);
-        container.appendChild(mainItemElement);
-
-        if (itemData.hasOwnProperty("parts") && itemData.parts.length > 0) {
-          itemData.parts.forEach((part) => {
-            processItem(part, container); // Recursively process each part
-          });
+      function createItemEntry(part, region) {
+        const entry = {
+          name: part.name,
+          quality: part.quality,
+          prices: { [region]: part.price },
+          amountNeeded: {},
+        };
+        if (part.amount_needed) {
+          entry.amountNeeded[region] = part.amount_needed;
         }
+        return entry;
       }
 
-      function processItem(part, container) {
-        const itemElement = createItemElement(part);
-        container.appendChild(itemElement);
+      function displayItems(itemsMap) {
+        const tbody = document.querySelector("#price-table tbody");
 
-        if (part.parts && part.parts.length > 0) {
-          part.parts.forEach((subPart) => {
-            processItem(subPart, container); // Recursive call to process nested parts
-          });
-        }
-      }
-
-      function createItemElement(item) {
-        const itemElement = document.createElement("div");
-        itemElement.classList.add("item", item.quality);
-        itemElement.innerHTML = `
-        <a href="https://www.wowhead.com/item=${item.id}" class="${getQualityClass(item.quality)}" data-wowhead="item=${
-          item.id
-        }">
-            ${item.name}
-        </a> 
-        <span class="price">
-            <span class="gold-icon"></span>${formatGold(item.price)}
-        </span>
-    `;
-        return itemElement;
+        itemsMap.forEach((details, id) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td><a href="https://www.wowhead.com/item=${id.split("-").pop()}" class="${getQualityClass(
+            details.quality
+          )}" data-wowhead="item=${id.split("-").pop()}">${details.name}</a></td>
+                         ${["eu", "us", "tw", "kr"]
+                           .map((region) => {
+                             const price = details.prices[region] || 0;
+                             const amountNeeded = details.amountNeeded[region];
+                             const totalPrice = amountNeeded ? price * amountNeeded : price;
+                             // Inside the displayItems function, adjust the row.innerHTML assignment:
+                             return `<td>${formatGold(price)} <span class="gold-icon"></span>${
+                               amountNeeded
+                                 ? `<span class="calculation"> x ${amountNeeded} = ${formatGold(
+                                     totalPrice
+                                   )} <span class="gold-icon"></span></span>`
+                                 : ""
+                             }</td>`;
+                           })
+                           .join("")}`;
+          tbody.appendChild(row);
+        });
       }
 
       function formatGold(price) {
-        // Converts price to gold assuming the price is in copper
-        return Math.floor(price / 10000); // Adjust if your price unit differs
+        return Math.floor(price / 10000).toLocaleString();
       }
 
       function getQualityClass(quality) {
-        // Converts quality to a class name used for coloring
         const qualityClasses = {
           common: "common",
           uncommon: "uncommon",
