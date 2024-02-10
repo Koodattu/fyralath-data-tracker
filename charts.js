@@ -78,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Function to generate color based on region
 function getColorByRegion(region) {
-  console.log(region);
   switch (region) {
     case "eu":
       return "green";
