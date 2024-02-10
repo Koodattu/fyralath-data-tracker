@@ -2,7 +2,7 @@
     <br />
     <img src="https://i.imgur.com/kOhczFq.png" alt="Logo" width="80" height="80">
 
-  <h3 align="center">Fyr'alath Price Tracker</h3>
+  <h3 align="center"><a href="https://fyralath.koodattu.dev">Fyr'alath Price Tracker</a></h3>
 
   <p align="center">
   World of Warcraft legendary axe current price and history.
