@@ -96,32 +96,32 @@ function displayItems(itemsMap) {
 
   itemsMap.forEach((details, id) => {
     const row = document.createElement("tr");
-    row.innerHTML = `<td><a href="https://www.wowhead.com/item=${id.split("-").pop()}" class="${getQualityClass(
+    row.innerHTML = `<td><div class="item-icon-name"><img class="item-icon" src="images/${id
+      .split("-")
+      .pop()}.jpg"/><a href="https://www.wowhead.com/item=${id.split("-").pop()}" class="${getQualityClass(
       details.quality
     )}" data-wowhead="item=${id.split("-").pop()}">${details.name}</a>${
       Object.values(details.amountNeeded).some((amount) => amount)
-        ? `<span class="white-text calculation"> x ${
+        ? `<span class="white-text calculation">&nbsp;x ${
             Object.values(details.amountNeeded).find((amount) => amount) || "</span>"
           }`
         : ""
-    }</td>
+    }</div></td>
                     ${["eu", "us", "tw", "kr"]
                       .map((region) => {
                         const price = details.prices[region] || 0;
                         const amountNeeded = details.amountNeeded[region];
                         const totalPrice = amountNeeded ? price * amountNeeded : price;
                         if (amountNeeded) {
-                          return `<td><span class="not-calculation">${formatGold(
+                          return `<td><div class="item-icon-name"><span class="not-calculation">${formatGold(
                             price
-                          )} <span class="gold-icon"></span></span>${
-                            amountNeeded
-                              ? `<span class="calculation">${formatGold(
-                                  totalPrice
-                                )} <span class="gold-icon"></span></span>`
-                              : ""
-                          }</td>`;
+                          )} </span>${
+                            amountNeeded ? `<span class="calculation">${formatGold(totalPrice)} </span>` : ""
+                          }<img class="gold-icon" src="images/money-gold.gif"/></div></td>`;
                         } else {
-                          return `<td>${formatGold(price)} <span class="gold-icon"></span></td>`;
+                          return `<td><div class="item-icon-name">${formatGold(
+                            price
+                          )}<img class="gold-icon" src="images/money-gold.gif"/></div></td>`;
                         }
                       })
                       .join("")}`;

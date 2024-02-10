@@ -22,6 +22,11 @@ td {
   border-bottom: 1px solid #ddd;
 }
 
+.item-icon-name {
+  display: flex;
+  align-items: center;
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -59,10 +64,17 @@ a {
 .gold-icon {
   width: 16px;
   height: 16px;
-  background-image: url("https://wow.zamimg.com/images/icons/money-gold.gif"); /* Path to your gold icon image */
+  background-image: url("images/money-gold.gif"); /* Path to your gold icon image */
   display: inline-block;
   background-size: contain;
-  margin-right: 4px;
+  margin-left: 4px;
+}
+
+.item-icon {
+  width: 28px;
+  height: 28px;
+  background-size: contain;
+  margin-right: 8px;
 }
 
 .price {
