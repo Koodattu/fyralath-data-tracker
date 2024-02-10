@@ -62,12 +62,26 @@ document.addEventListener("DOMContentLoaded", () => {
               title: {
                 display: true,
                 text: "Date",
+                color: "gray", // Set label color to white
+              },
+              grid: {
+                color: "gray", // Set grid color to white
+              },
+              ticks: {
+                color: "gray", // Set label color to white
               },
             },
             y: {
               title: {
                 display: true,
                 text: "Average Cost (gold)",
+                color: "gray", // Set label color to white
+              },
+              grid: {
+                color: "gray", // Set grid color to white
+              },
+              ticks: {
+                color: "gray", // Set label color to white
               },
             },
           },
