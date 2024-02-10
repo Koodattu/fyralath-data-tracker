@@ -92,3 +92,44 @@ a {
 .hide-calculation .not-calculation {
   display: none; /* Hide when this class is added */
 }
+
+.grid-wrapper {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(800px, auto));
+  grid-gap: 1em;
+}
+
+.chart-style {
+  position: relative;
+  margin: 0;
+  min-height: 500px;
+}
+
+@media screen and (max-width: 1650px) {
+  .grid-wrapper {
+    grid-template-columns: auto;
+  }
+
+  .chart-style {
+    max-width: 95vw;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  body {
+    padding: 4px;
+  }
+
+  .gold-icon {
+    width: 8px;
+    height: 8px;
+  }
+
+  .item-icon {
+    display: none;
+  }
+
+  table {
+    font-size: 10px;
+  }
+}

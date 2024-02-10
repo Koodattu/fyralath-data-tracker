@@ -30,21 +30,25 @@
     <div id="lastUpdated">Last Updated: <span id="timestamp">Loading...</span></div>
     <h1>Auction House Prices by Item and Region</h1>
     <label> <input type="checkbox" id="toggleCalculation" /> Show Price Calculations </label>
-    <table id="price-table">
-      <thead>
-        <tr>
-          <th>Item Name</th>
-          <th>EU Prices</th>
-          <th>US Prices</th>
-          <th>TW Prices</th>
-          <th>KR Prices</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Data rows will be inserted here by JavaScript -->
-      </tbody>
-    </table>
-    <canvas id="myChart" width="800" height="400"></canvas>
+    <div class="grid-wrapper">
+      <table id="price-table">
+        <thead>
+          <tr>
+            <th>Item Name</th>
+            <th>EU Prices</th>
+            <th>US Prices</th>
+            <th>TW Prices</th>
+            <th>KR Prices</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Data rows will be inserted here by JavaScript -->
+        </tbody>
+      </table>
+      <div class="chart-style">
+        <canvas id="myChart"></canvas>
+      </div>
+    </div>
     <script src="table.js"></script>
     <script src="charts.js"></script>
   </body>

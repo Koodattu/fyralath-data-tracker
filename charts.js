@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         datasets.push({
           label: regionName,
           data: regionData,
-          borderColor: getRandomColor(), // Function to generate random color
+          borderColor: getColorByRegion(regionName), // Function to generate random color
           fill: false,
         });
       });
@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
           datasets: datasets,
         },
         options: {
+          maintainAspectRatio: false,
           responsive: true,
           scales: {
             x: {
@@ -75,12 +76,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-// Function to generate random color
-function getRandomColor() {
-  const letters = "0123456789ABCDEF";
-  let color = "#";
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
+// Function to generate color based on region
+function getColorByRegion(region) {
+  console.log(region);
+  switch (region) {
+    case "eu":
+      return "green";
+    case "us":
+      return "blue";
+    case "kr":
+      return "orange";
+    case "tw":
+      return "purple";
+    default:
+      return "black";
   }
-  return color;
 }
