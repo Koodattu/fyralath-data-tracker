@@ -3,7 +3,9 @@ import json
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-class JsonDataParser:
+from mongodb_manager import MongoDBManager
+
+class ExchangeDataParser:
     def __init__(self, base_dir, base_file, output_dir='aggregated_data'):
         self.base_dir = base_dir
         self.base_file = base_file
@@ -102,7 +104,33 @@ class JsonDataParser:
         with open(output_file_path, 'w') as file:
             json.dump(aggregated_data, file, indent=4)
 
+    def save_data_to_mongodb(self):
+        # Initialize MongoDBManager
+        db_manager = MongoDBManager()
+
+        # Specify the files and their corresponding MongoDB collections
+        files_to_collections = {
+            'total_costs.json': ('total_costs', db_manager.save_region_data),
+            'daily_averages.json': ('daily_average', db_manager.save_region_data)
+        }
+
+        for file_name, (collection_prefix, save_method) in files_to_collections.items():
+            file_path = os.path.join(self.output_dir, file_name)
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as file:
+                    data = json.load(file)
+                for record in data:
+                    region = record['region']
+                    for document in record['data']:
+                        # The MongoDBManager's save_region_data method expects a collection prefix,
+                        # a region, and a document.
+                        save_method(collection_prefix, region, document)
+
+
 if __name__ == "__main__":
-    parser = JsonDataParser('base_history_data', 'base.json')
+    parser = ExchangeDataParser('base_history_data', 'base.json')
     parser.process_files()
     parser.aggregate_daily_averages()
+
+    # Now, save the aggregated data to MongoDB
+    parser.save_data_to_mongodb()

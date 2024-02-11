@@ -3,6 +3,7 @@ from flask_caching import Cache
 from flask_cors import CORS
 import json
 from auction_data_fetcher import AuctionDataFetcher
+from mongodb_manager import MongoDBManager
 import schedule
 import threading
 import time
@@ -13,6 +14,7 @@ app = Flask(__name__)
 CORS(app)
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 auction_fetcher = AuctionDataFetcher()
+db_manager = MongoDBManager()
 
 def fetch_auction_data():
     print("Fetching auction data...")
@@ -30,20 +32,32 @@ def run_scheduler():
         time.sleep(1)
 
 @app.route('/api/data/current', methods=['GET'])
-@cache.cached(timeout=None)  # Cache the response indefinitely
 def get_current_data():
-    print("Get data called")
-    with open('./data/latest_item_prices.json') as file:
-        data = json.load(file)
+    print("Fetching current data...")
+    cache_key = 'current_data'
+    data = cache.get(cache_key)
+    if data is None:
+        print("Cache missing. Getting data from db.")
+        data = db_manager.get_latest_item_prices()
+        data = json.dumps(data, default=str)
+        cache.set(cache_key, data, timeout=None)
+    else:
+        print("Returning cached current data")
     return data
 
 
 @app.route('/api/data/history', methods=['GET'])
-@cache.cached(timeout=None)  # Cache the response indefinitely
 def get_history_data():
-    print("Get data called")
-    with open('./data/latest_total_costs.json') as file:
-        data = json.load(file)
+    print("Fetching history data...")
+    cache_key = 'history_data'
+    data = cache.get(cache_key)
+    if data is None:
+        print("Cache missing. Getting data from db.")
+        data = db_manager.get_all_daily_averages()
+        data = json.dumps(data, default=str)
+        cache.set(cache_key, data, timeout=None)
+    else:
+        print("Returning cached current data.")
     return data
 
 def get_local_ip():
@@ -63,7 +77,7 @@ if __name__ == '__main__':
     print("Starting Flask app")
     # Start the scheduler thread
     print("Fetching auction data...")
-    result = auction_fetcher.run()
+    #result = auction_fetcher.run()
     print("Auction data fetched successfully")
     scheduler_thread = threading.Thread(target=run_scheduler)
     scheduler_thread.start()
