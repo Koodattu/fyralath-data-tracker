@@ -46,6 +46,7 @@ class AuctionDataFetcher:
         auction_data_filename = f'./data/auction_data/auction_data_{region}.json'
 
         # Check if the auction data file exists and has content
+        """
         try:
             if os.path.exists(auction_data_filename) and os.path.getsize(auction_data_filename) > 0:
                 print(f'Using existing auction data for {region} region.')
@@ -54,12 +55,13 @@ class AuctionDataFetcher:
                 return auction_data
         except Exception as e:
             print(f"Error reading existing auction data for {region} region: {e}")
+        """
 
         # If file doesn't exist or is empty, fetch new data
         print(f'Fetching new auction data for {region} region.')
         auction_data = self.fetch_data(region, access_token)
-        if auction_data is not None:
-            self.save_data_as_json(auction_data_filename, auction_data)
+        #if auction_data is not None:
+            #self.save_data_as_json(auction_data_filename, auction_data)
         return auction_data
 
     def save_data_as_json(self, filename, data):
@@ -73,54 +75,7 @@ class AuctionDataFetcher:
         except Exception as e:
             print(f"Error saving data as JSON to {filename}: {e}")
 
-    def entry_exists_for_current_hour(self, region):
-        """Checks if an entry for the current year, month, day, and hour exists in the file."""
-        filename = f'./data/total_cost_{region}.json'
-        now = datetime.datetime.now().isoformat()
-        current_date_hour = now[:13]
-
-        try:
-            if os.path.exists(filename):
-                with open(filename, 'r') as file:
-                    data = json.load(file)
-                    for entry in data:
-                        entry_date_hour = entry['timestamp'][:13]
-                        if entry_date_hour == current_date_hour:
-                            return True
-            return False
-        except Exception as e:
-            print(f"Error checking entry existence for {region} region: {e}")
-            return False
-
-    def update_total_cost_file(self, region, total_cost):
-        """Updates the total cost file for the region with a new data entry."""
-        filename = f'./data/total_cost_{region}.json'
-        now = datetime.datetime.now().isoformat()
-        entry = {'timestamp': now, 'total_cost': total_cost}
-        
-        try:
-            if not os.path.exists(os.path.dirname(filename)):
-                os.makedirs(os.path.dirname(filename))
-
-            if os.path.exists(filename):
-                with open(filename, 'r+') as file:
-                    data = json.load(file)
-                    data.append(entry)
-                    file.seek(0)
-                    json.dump(data, file)
-            else:
-                with open(filename, 'w') as file:
-                    json.dump([entry], file)
-
-            backup_folder = './data/backup'
-            os.makedirs(backup_folder, exist_ok=True)
-            backup_path = os.path.join(backup_folder, f'total_cost_{region}.json')
-            shutil.copy(filename, backup_path)
-        except Exception as e:
-            print(f"Error updating total cost file for {region} region: {e}")
-
     def calculate_total_cost(self, auction_data, base_json, item_ids):
-
         # Helper function to update item prices in the JSON structure
         def update_item_prices(parts, auction_prices):
             for part in parts:
@@ -159,24 +114,6 @@ class AuctionDataFetcher:
 
         return base_json
 
-    def save_latest_data(self, aggregated_data):
-        filename = './data/latest_item_prices.json'
-        timestamp = datetime.datetime.now().isoformat()
-        data_with_timestamp = {
-            'timestamp': timestamp,
-            'data': aggregated_data
-        }
-
-        try:
-            if not os.path.exists(os.path.dirname(filename)):
-                os.makedirs(os.path.dirname(filename))
-
-            with open(filename, 'w') as file:
-                json.dump(data_with_timestamp, file)
-            print(f"Latest item prices saved to {filename}.")
-        except Exception as e:
-            print(f"Error saving latest item prices: {e}")
-
     def read_base_json(self):
         try:
             with open('base.json', 'r') as file:
@@ -206,21 +143,17 @@ class AuctionDataFetcher:
 
         if access_token is None:
             print("Failed to acquire access token. Exiting.")
-            return False
+            return None
 
         base_json = self.read_base_json()
         if not base_json:
             print("Failed to read base JSON structure. Exiting.")
-            return False
+            return None
 
         aggregated_data = []
         regions = ['us', 'eu', 'tw', 'kr']
         for region in regions:
             print(f'Processing data for {region} region.')
-
-            if self.entry_exists_for_current_hour(region):
-                print(f'Entry for the current hour already exists for {region} region. Skipping.')
-                continue
 
             auction_data = self.get_or_fetch_auction_data(region, access_token)
             if auction_data is None:
@@ -237,12 +170,17 @@ class AuctionDataFetcher:
 
         # Save the latest data for all regions if there's any data to save
         if aggregated_data:
-            self.save_latest_data(aggregated_data)
             print("Data processing and saving completed for all regions.")
+            timestamp = int(datetime.datetime.now().timestamp() * 1000)
+            data_with_timestamp = {
+                'timestamp': timestamp,
+                'data': aggregated_data
+            }
+            return data_with_timestamp
         else:
             print("No new data fetched. Exiting.")
 
-        return True
+        return None
 
 if __name__ == '__main__':
     auction_fetcher = AuctionDataFetcher()

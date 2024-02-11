@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import json
 import os
 
@@ -46,11 +47,104 @@ class LocalStorageManager:
                 all_data[region] = documents
         return all_data
 
+    def check_date_exists_in_daily_average(self, region, date):
+        """Checks if an entry for the current year, month and day exists in the file."""
+        filename = self._get_file_path(f"daily_average_{region}")
+
+        try:
+            if os.path.exists(filename):
+                with open(filename, 'r') as file:
+                    data = json.load(file)
+                    for entry in data:
+                        entry_date = entry['date']
+                        if entry_date == date:
+                            return True
+            return False
+        except Exception as e:
+            print(f"Error checking daily average entry existence for {region} region: {e}")
+            return False
+
+    def check_timestamp_exists_in_total_costs(self, region, timestamp):
+        """Checks if an entry for the current year, month, day, and hour exists in the file."""
+        filename = self._get_file_path(f"total_costs_{region}")
+
+        try:
+            if os.path.exists(filename):
+                with open(filename, 'r') as file:
+                    data = json.load(file)
+                    for entry in data:
+                        entry_date_hour = entry['timestamp']
+                        if entry_date_hour == timestamp:
+                            return True
+            return False
+        except Exception as e:
+            print(f"Error checking total costs entry existence for {region} region: {e}")
+            return False
+
+    def append_document_to_file(self, file_path, document):
+        """Appends a new document to the existing JSON file."""
+        data = []
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as file:
+                try:
+                    data = json.load(file)
+                except json.JSONDecodeError:
+                    # Handles empty or corrupted file scenario
+                    data = []
+
+        data.append(document)
+        
+        with open(file_path, 'w') as file:
+            json.dump(data, file)
+
+    def get_total_costs_from_previous_day(self, region, given_timestamp):
+        """Retrieves documents with timestamps within the previous day of the given timestamp."""
+        file_path = self._get_file_path(f"total_costs_{region}")
+        previous_day_documents = []
+
+        if not os.path.exists(file_path):
+            return previous_day_documents  # Return an empty list if file doesn't exist
+
+        # Convert given timestamp to datetime for calculations
+        given_date = datetime.utcfromtimestamp(given_timestamp / 1000)
+
+        # Calculate start and end timestamps for the previous day in milliseconds
+        start_of_previous_day = (given_date - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_previous_day = (given_date - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        start_timestamp = int(start_of_previous_day.timestamp() * 1000)
+        end_timestamp = int(end_of_previous_day.timestamp() * 1000)
+
+        with open(file_path, 'r') as file:
+            try:
+                documents = json.load(file)
+                for document in documents:
+                    # Ensure the document's timestamp is within the previous day's range
+                    if "timestamp" in document and start_timestamp <= int(document["timestamp"]) <= end_timestamp:
+                        previous_day_documents.append(document)
+            except json.JSONDecodeError:
+                # If the file is empty or corrupted
+                pass
+
+        return previous_day_documents
+
+    def save_to_collection(self, collection_prefix, region, document):
+        """Appends total costs data to the specified region's file."""
+        file_path = self._get_file_path(f"{collection_prefix}_{region}")
+        self.append_document_to_file(file_path, document)
+        return "saved"
+
     def save_total_costs(self, region, document):
-        return self.save_region_data('total_costs', region, document)
+        """Appends total costs data to the specified region's file."""
+        file_path = self._get_file_path(f"total_costs_{region}")
+        self.append_document_to_file(file_path, document)
+        return "saved"
 
     def save_daily_average(self, region, document):
-        return self.save_region_data('daily_average', region, document)
+        """Appends daily average data to the specified region's file."""
+        file_path = self._get_file_path(f"daily_average_{region}")
+        self.append_document_to_file(file_path, document)
+        return "saved"
 
     def get_all_total_costs(self):
         return self.get_all_region_data("total_costs")
@@ -58,7 +152,6 @@ class LocalStorageManager:
     def get_all_daily_averages(self):
         return self.get_all_region_data("daily_average")
 
-# Example usage
 # Example usage
 if __name__ == "__main__":
     try:
