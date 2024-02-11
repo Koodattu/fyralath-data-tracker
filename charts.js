@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   // Fetch the JSON data
-  fetch("http://192.168.38.104:5000/api/data/history")
+  fetch("https://backend.koodattu.dev/api/data/history")
     .then((response) => response.json())
     .then((data) => {
       // Initialize arrays to hold labels (dates) and datasets (region prices)

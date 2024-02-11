@@ -119,7 +119,8 @@ if __name__ == '__main__':
     scheduler_thread.start()
 
     # Start the Flask app using the local IP address
-    local_ip = get_local_ip()
+    print(get_local_ip())
+	local_ip = '0.0.0.0'
     port = 5000
     print("Flask app starting")
     print(f"http://{local_ip}:{port}/api/data/current")

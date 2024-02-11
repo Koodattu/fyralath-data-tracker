@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function fetchData() {
   // Simulating a fetch request - replace with actual fetch from your backend
-  const response = await fetch("http://192.168.38.104:5000/api/data/current");
+  const response = await fetch("https://backend.koodattu.dev/api/data/current");
   const data = await response.json();
 
   // Update the timestamp display
