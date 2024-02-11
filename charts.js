@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
           // Push date and average cost to the region data array
           regionData.push({
             x: new Date(dataPoint.date), // Parse date string into Date object
-            y: dataPoint.average_cost / 1000,
+            y: dataPoint.average_cost / 10000,
           });
 
           // Add the date to labels array if not already present
