@@ -60,11 +60,13 @@ a {
 .legendary {
   color: #ff8000;
 }
+.artifact {
+  color: #0cf;
+}
 
 .gold-icon {
   width: 16px;
   height: 16px;
-  background-image: url("images/money-gold.gif"); /* Path to your gold icon image */
   display: inline-block;
   background-size: contain;
   margin-left: 4px;

@@ -44,6 +44,51 @@ function processAndDisplayData(data) {
   });
 
   displayItems(itemsMap);
+  displayTokens(data);
+  displayCurrencies(data);
+}
+
+function displayTokens(data) {
+  const tbody = document.querySelector("#price-table tbody");
+  const row = document.createElement("tr");
+  const id = "122284";
+  const itemCell = `<td><div class="item-icon-name"><img class="item-icon" src="images/${id
+    .split("-")
+    .pop()}.jpg"/><a href="https://www.wowhead.com/item=${id.split("-").pop()}" class="${getQualityClass(
+    ""
+  )}" data-wowhead="item=${id.split("-").pop()}">WoW Token</a></div></td>`;
+  let regionCells = "";
+  data.data.forEach((regionData) => {
+    wow_token_ratio = regionData.wow_token_ratio;
+    regionCells += `<td><div class="item-icon-name"><span class="not-calculation">${wow_token_ratio} 
+    </span>
+<img class="gold-icon" src="images/122284.png"/></div></td>`;
+  });
+  row.innerHTML = itemCell + regionCells;
+  tbody.appendChild(row);
+}
+
+function displayCurrencies(data) {
+  const tbody = document.querySelector("#price-table tbody");
+  const row = document.createElement("tr");
+  const id = "122284";
+  const itemCell = `<td>💸 Pay-to-Win</td>`;
+  let regionCells = "";
+  const currencies = {
+    us: { currency: "$", amount: "20" },
+    eu: { currency: "€", amount: "20" },
+    tw: { currency: "NT$", amount: "500" },
+    kr: { currency: "₩", amount: "22000" },
+  };
+  data.data.forEach((regionData) => {
+    const wow_token_ratio = regionData.wow_token_ratio;
+    const region = regionData.region;
+    regionCells += `<td>${(
+      Math.round(currencies[region].amount * wow_token_ratio * 100) / 100
+    ).toLocaleString()}&nbsp;${currencies[region].currency}</td>`;
+  });
+  row.innerHTML = itemCell + regionCells;
+  tbody.appendChild(row);
 }
 
 function processTopLevelItem(item, itemsMap, region) {
@@ -142,5 +187,5 @@ function getQualityClass(quality) {
     legendary: "legendary",
     artifact: "artifact",
   };
-  return qualityClasses[quality] || "common";
+  return qualityClasses[quality] || "artifact";
 }
