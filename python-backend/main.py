@@ -37,6 +37,10 @@ def fetch_auction_data():
             # check if we should save the total costs
             total_costs_exists = db_manager.check_timestamp_exists_in_total_costs(entry['region'], timestamp_adjusted)
             print(f"Checking if total costs exists for {entry['region']} on {timestamp_adjusted}: {total_costs_exists}")
+            data_with_timestamp = {
+                'timestamp': timestamp_adjusted,
+                'total_cost': entry['data']['price']
+            }
             if not total_costs_exists:
                 data_with_timestamp = {
                     'timestamp': timestamp_adjusted,
@@ -54,7 +58,8 @@ def fetch_auction_data():
                 daily_averages = data_aggregator.aggregate_daily_averages(previous_data)
                 print(f"Saving daily average for {entry['region']} on {date.strftime('%Y-%m-%d')}: {daily_averages}")
                 if daily_averages:
-                    db_manager.save_daily_average(entry['region'], daily_averages)
+                    for daily_average in daily_averages:
+                        db_manager.save_daily_average(entry['region'], daily_average)
 
     cache.clear()
     print("Auction data fetched successfully")
@@ -120,7 +125,7 @@ if __name__ == '__main__':
 
     # Start the Flask app using the local IP address
     print(get_local_ip())
-	local_ip = '0.0.0.0'
+    local_ip = '0.0.0.0'
     port = 5000
     print("Flask app starting")
     print(f"http://{local_ip}:{port}/api/data/current")
