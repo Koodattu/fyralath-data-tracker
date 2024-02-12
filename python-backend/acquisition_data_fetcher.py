@@ -19,7 +19,7 @@ import base64
 
 # Define constants
 CLASSES = ["death-knight", "paladin", "warrior"]
-ROLES = {"death-knight": "all", "paladin": "dps", "warrior": "all"}
+ROLES = {"death-knight": "tank", "paladin": "dps", "warrior": "dps"}
 DATA_DIR = "./rio_data"
 RATE_LIMIT = 300  # max requests per minute
 REQUEST_INTERVAL = 60 / RATE_LIMIT  # pause between requests to respect rate limit
@@ -191,7 +191,7 @@ def fetch_and_process_characters():
                         "region": char_info['region']['slug'],
                         "realm": char_info['realm']['slug'],
                         "class": class_name,
-                        "has_fyrath": has_fyrath,
+                        "has_fyralath": has_fyrath,
                         "timestamp": int(time.time()) if has_fyrath else 0
                     })
             save_progress(class_name, page + 1)  # Save progress after each page is processed
