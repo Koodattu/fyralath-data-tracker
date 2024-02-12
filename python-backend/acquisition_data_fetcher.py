@@ -182,7 +182,7 @@ def fetch_and_process_characters():
                     has_fyrath = is_wearing_fyrath_by_item_id_rio(gear_data)
                     requests_per_minute = request_count / ((time.time() - start_time) / 60) if time.time() - start_time > 0 else request_count
                     # Update the console line with the latest info, including character count
-                    sys.stdout.write(f"\rProcessed: {character_count}, Page: {page}, Req/Min: {requests_per_minute:.2f}, Latest: {char_info['name']} on {char_info['realm']['name']}            ")
+                    sys.stdout.write(f"\rProcessed: {character_count}/30000 ({(character_count/30000*100):.2f}%), Page: {page}/250, Req/Min: {requests_per_minute:.2f}, Approx time left: {((30000-character_count)/requests_per_minute):.2f} minutes, Latest: {char_info['name']} on {char_info['realm']['name']}            ")
                     sys.stdout.flush()
                     
                     save_data(class_name, {
