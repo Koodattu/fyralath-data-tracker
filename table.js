@@ -105,8 +105,14 @@ function displayTokens(data) {
     .pop()}.jpg"/><a href="https://www.wowhead.com/item=${id.split("-").pop()}" class="${getQualityClass(
     ""
   )}" data-wowhead="item=${id.split("-").pop()}">WoW Token</a></div></td>`;
+
+  // Define the preferred order of regions
+  const order = ["eu", "us", "tw", "kr"];
+
+  // Sort the data based on the preferred order
+  const sortedData = data.data.sort((a, b) => order.indexOf(a.region) - order.indexOf(b.region));
   let regionCells = "";
-  data.data.forEach((regionData) => {
+  sortedData.forEach((regionData) => {
     wow_token_ratio = regionData.wow_token_ratio;
     regionCells += `<td><div class="item-icon-name"><span >${wow_token_ratio} 
     </span>
@@ -120,24 +126,75 @@ function displayCurrencies(data) {
   const tbody = document.querySelector("#price-table tbody");
   const row = document.createElement("tr");
   row.id = "real-money";
-  const id = "122284";
-  const itemCell = `<td><div class="item-icon-name"><img class="item-icon" src="images/credit.png"/> Pay-to-Win</td>`;
-  let regionCells = "";
+
+  const dropdown = `<select id="currency-select">
+                      <option value="own">Own Currencies</option>
+                      <option value="eu">In Euros</option>
+                      <option value="us">In US Dollars</option>
+                      <option value="tw">In NT Dollars</option>
+                      <option value="kr">In Korean Won</option>
+                    </select>`;
+  const itemCell = `<td><div class="item-icon-name"><img class="item-icon" src="images/credit.png"/> ${dropdown}</td>`;
+
   const currencies = {
-    us: { currency: "$", amount: "20" },
     eu: { currency: "€", amount: "20" },
+    us: { currency: "$", amount: "20" },
     tw: { currency: "NT$", amount: "500" },
     kr: { currency: "₩", amount: "22000" },
   };
-  data.data.forEach((regionData) => {
-    const wow_token_ratio = regionData.wow_token_ratio;
-    const region = regionData.region;
-    regionCells += `<td>${(
-      Math.round(currencies[region].amount * wow_token_ratio * 100) / 100
-    ).toLocaleString()}&nbsp;${currencies[region].currency}</td>`;
+
+  // Conversion ratios between currencies, hypothetical values for demonstration
+  const conversionRatios = {
+    eu: { eu: 1, us: 1.1, tw: 38, kr: 1300 }, // Example: 1 Euro = 1.1 USD, etc.
+    us: { eu: 0.9, us: 1, tw: 34.5, kr: 1180 }, // Example: 1 USD = 0.9 Euro, etc.
+    tw: { eu: 0.026, us: 0.029, tw: 1, kr: 34 }, // Example: 1 NT$ = 0.026 Euro, etc.
+    kr: { eu: 0.00077, us: 0.00085, tw: 0.029, kr: 1 }, // Example: 1 Won = 0.00077 Euro, etc.
+  };
+
+  // Define the preferred order of regions
+  const order = ["eu", "us", "tw", "kr"];
+
+  // Sort the data based on the preferred order
+  const sortedData = data.data.sort((a, b) => order.indexOf(a.region) - order.indexOf(b.region));
+  let regionCells = "";
+  sortedData.forEach((regionData) => {
+    const { region, wow_token_ratio } = regionData;
+    console.log(region, wow_token_ratio);
+    const baseCurrency = currencies[region];
+    regionCells += `<td>`;
+    // Handle 'own' currency display separately
+    if (baseCurrency) {
+      regionCells += `<span class="currency currency-own">${(baseCurrency.amount * wow_token_ratio)
+        .toFixed(2)
+        .toLocaleString()}&nbsp;${baseCurrency.currency}</span>`;
+    }
+    // Convert and display for other currencies
+    Object.keys(conversionRatios).forEach((key) => {
+      if (key !== "own") {
+        // 'own' handled separately
+        const rate = conversionRatios[region][key];
+        const convertedAmount = (baseCurrency.amount * wow_token_ratio * rate).toFixed(2).toLocaleString();
+        const currencySymbol = currencies[key].currency;
+        regionCells += `<span class="currency currency-${key}" style="display:none;">${convertedAmount}&nbsp;${currencySymbol}</span>`;
+      }
+    });
+    regionCells += `</td>`;
   });
+
   row.innerHTML = itemCell + regionCells;
   tbody.appendChild(row);
+
+  document.getElementById("currency-select").addEventListener("change", function () {
+    const selectedValue = this.value;
+    document.querySelectorAll(".currency").forEach((el) => (el.style.display = "none"));
+    if (selectedValue === "own") {
+      document.querySelectorAll(".currency-own").forEach((el) => (el.style.display = ""));
+    } else {
+      document.querySelectorAll(`.currency-${selectedValue}`).forEach((el) => (el.style.display = ""));
+    }
+  });
+
+  document.getElementById("currency-select").dispatchEvent(new Event("change"));
 }
 
 function processTopLevelItem(item, itemsMap, region) {
