@@ -10,6 +10,22 @@ document.addEventListener("DOMContentLoaded", () => {
       table.classList.remove("hide-calculation");
     }
   });
+  document.getElementById("toggleComponents").addEventListener("change", function () {
+    const table = document.querySelector("#price-table");
+    if (this.checked) {
+      table.classList.remove("hide-components");
+    } else {
+      table.classList.add("hide-components");
+    }
+  });
+  document.getElementById("toggleRealMoney").addEventListener("change", function () {
+    const table = document.querySelector("#price-table");
+    if (this.checked) {
+      table.classList.remove("hide-money");
+    } else {
+      table.classList.add("hide-money");
+    }
+  });
 });
 
 async function fetchData() {
@@ -51,6 +67,7 @@ function processAndDisplayData(data) {
 function displayTokens(data) {
   const tbody = document.querySelector("#price-table tbody");
   const row = document.createElement("tr");
+  row.id = "wow-token";
   const id = "122284";
   const itemCell = `<td><div class="item-icon-name"><img class="item-icon" src="images/${id
     .split("-")
@@ -60,7 +77,7 @@ function displayTokens(data) {
   let regionCells = "";
   data.data.forEach((regionData) => {
     wow_token_ratio = regionData.wow_token_ratio;
-    regionCells += `<td><div class="item-icon-name"><span class="not-calculation">${wow_token_ratio} 
+    regionCells += `<td><div class="item-icon-name"><span >${wow_token_ratio} 
     </span>
 <img class="gold-icon" src="images/122284.png"/></div></td>`;
   });
@@ -71,6 +88,7 @@ function displayTokens(data) {
 function displayCurrencies(data) {
   const tbody = document.querySelector("#price-table tbody");
   const row = document.createElement("tr");
+  row.id = "real-money";
   const id = "122284";
   const itemCell = `<td>💸 Pay-to-Win</td>`;
   let regionCells = "";
@@ -141,6 +159,7 @@ function displayItems(itemsMap) {
 
   itemsMap.forEach((details, id) => {
     const row = document.createElement("tr");
+    row.id = id;
     row.innerHTML = `<td><div class="item-icon-name"><img class="item-icon" src="images/${id
       .split("-")
       .pop()}.jpg"/><a href="https://www.wowhead.com/item=${id.split("-").pop()}" class="${getQualityClass(

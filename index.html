@@ -29,9 +29,13 @@
   <body>
     <div id="lastUpdated">Last Updated: <span id="timestamp">Loading...</span></div>
     <h1>Auction House Prices by Item and Region</h1>
-    <label> <input type="checkbox" id="toggleCalculation" /> Show Price Calculations </label>
+    <div class="options-checkboxes">
+      <label> <input type="checkbox" id="toggleCalculation" checked /> Show Price Calculations</label>
+      <label> <input type="checkbox" id="toggleComponents" /> Show Components</label>
+      <label> <input type="checkbox" id="toggleRealMoney" /> Show Real Money Comparison</label>
+    </div>
     <div class="grid-wrapper">
-      <table id="price-table">
+      <table id="price-table" class="show-calculation hide-calculation hide-components hide-money">
         <thead>
           <tr>
             <th>Item Name</th>
