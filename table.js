@@ -1,5 +1,20 @@
-document.addEventListener("DOMContentLoaded", () => {
-  fetchData();
+// Define the IDs of your checkboxes
+const checkboxIds = ["toggleCalculation", "toggleComponents", "toggleRealMoney"];
+
+// Initialize checkboxes based on saved settings
+checkboxIds.forEach((id) => {
+  const checkbox = document.getElementById(id);
+  const isChecked = JSON.parse(localStorage.getItem(id)); // Convert string back to boolean
+
+  // Check if there was a saved state; if not, default to false
+  checkbox.checked = isChecked === null ? false : isChecked;
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // Fetch data initially if needed
+  await fetchData();
+
+  // Add event listeners for checkboxes
   document.getElementById("toggleCalculation").addEventListener("change", function () {
     const table = document.querySelector("#price-table");
     if (this.checked) {
@@ -9,7 +24,10 @@ document.addEventListener("DOMContentLoaded", () => {
       table.classList.remove("show-calculation");
       table.classList.remove("hide-calculation");
     }
+    // Save state to localStorage
+    localStorage.setItem("toggleCalculation", this.checked);
   });
+
   document.getElementById("toggleComponents").addEventListener("change", function () {
     const table = document.querySelector("#price-table");
     if (this.checked) {
@@ -17,7 +35,10 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       table.classList.add("hide-components");
     }
+    // Save state to localStorage
+    localStorage.setItem("toggleComponents", this.checked);
   });
+
   document.getElementById("toggleRealMoney").addEventListener("change", function () {
     const table = document.querySelector("#price-table");
     if (this.checked) {
@@ -25,6 +46,16 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       table.classList.add("hide-money");
     }
+    // Save state to localStorage
+    localStorage.setItem("toggleRealMoney", this.checked);
+  });
+
+  // Initialize checkboxes based on saved settings
+  checkboxIds.forEach((id) => {
+    const checkbox = document.getElementById(id);
+
+    // Trigger the change event to apply initial state
+    checkbox.dispatchEvent(new Event("change"));
   });
 });
 
@@ -90,7 +121,7 @@ function displayCurrencies(data) {
   const row = document.createElement("tr");
   row.id = "real-money";
   const id = "122284";
-  const itemCell = `<td>💸 Pay-to-Win</td>`;
+  const itemCell = `<td><div class="item-icon-name"><img class="item-icon" src="images/credit.png"/> Pay-to-Win</td>`;
   let regionCells = "";
   const currencies = {
     us: { currency: "$", amount: "20" },
