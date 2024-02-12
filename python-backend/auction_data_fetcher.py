@@ -26,7 +26,7 @@ class AuctionDataFetcher:
             return None
 
     def fetch_data(self, region, access_token):
-        """Fetches data from a specific region."""
+        """Fetches auction house data from a specific region."""
         url = f'https://{region}.api.blizzard.com/data/wow/auctions/commodities'
         params = {
             'namespace': f'dynamic-{region}',
@@ -63,6 +63,22 @@ class AuctionDataFetcher:
         #if auction_data is not None:
             #self.save_data_as_json(auction_data_filename, auction_data)
         return auction_data
+
+    def fetch_wow_token(self, region, access_token):
+        """Fetches wow token data from a specific region."""
+        url = f'https://{region}.api.blizzard.com/data/wow/token/index'
+        params = {
+            'namespace': f'dynamic-{region}',
+            'locale': 'en_US',
+            'access_token': access_token
+        }
+        try:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            print(f"Error fetching data for {region} region: {e}")
+            return None
 
     def save_data_as_json(self, filename, data):
         """Saves the fetched data as a JSON file."""
@@ -166,7 +182,13 @@ class AuctionDataFetcher:
             # Then, recalculate composite item prices based on updated auction prices
             base_json = self.read_base_json()
             region_data = self.calculate_total_cost(auction_data, base_json, item_ids)
-            aggregated_data.append({"region": region, "data": region_data})
+
+            wow_token = self.fetch_wow_token(region, access_token)
+            if wow_token is None:
+                print(f"Failed to obtain wow token data for {region} region. Skipping.")
+
+            wow_token_ratio = round(region_data['price'] / wow_token['price'], 3)
+            aggregated_data.append({"region": region, "wow_token_ratio": wow_token_ratio, "data": region_data})
 
         # Save the latest data for all regions if there's any data to save
         if aggregated_data:
