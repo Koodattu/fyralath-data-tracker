@@ -102,6 +102,28 @@ def get_history_data():
         print("Returning cached current data.")
     return data
 
+
+@app.route('/api/data/acquisitions', methods=['GET'])
+def get_acquisition_data():
+    print("Fetching history data...")
+    cache_key = 'acquisition_data'
+    data = cache.get(cache_key)
+    if data is None:
+        print("Cache missing. Getting data from db.")
+        summary = db_manager.get_all_acquisitions("summary")
+        daily = db_manager.get_all_acquisitions("daily")
+        cumulative = db_manager.get_all_acquisitions("cumulative")
+        data = {
+            "summary": summary,
+            "daily": daily,
+            "cumulative": cumulative
+        }
+        data = json.dumps(data, default=str)
+        cache.set(cache_key, data, timeout=None)
+    else:
+        print("Returning cached current data.")
+    return data
+
 def get_local_ip():
     """Function to get the local IP address of the machine."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -118,7 +140,7 @@ def get_local_ip():
 if __name__ == '__main__':
     print("Starting Flask app")
     # Start the scheduler thread
-    fetch_auction_data()
+    #fetch_auction_data()
     print("Auction data fetched successfully")
     scheduler_thread = threading.Thread(target=run_scheduler)
     scheduler_thread.start()

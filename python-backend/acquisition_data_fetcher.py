@@ -29,6 +29,7 @@ RIO_PRIVATE_BASE = "https://raider.io/api/mythic-plus/rankings/characters?region
 RIO_API_BASE = "https://raider.io/api/v1/characters/profile?region={region}&realm={realm}&name={name}&fields=gear"
 
 BLIZZARD_EQ_API = "https://{region}.api.blizzard.com/profile/wow/character/{realm}/{name}/equipment"
+BLIZZARD_ACH_API = "https://{region}.api.blizzard.com/profile/wow/character/{realm}/{name}/achievements"
 
 PROGRESS_FILE = os.path.join(DATA_DIR, "progress.json")
 
@@ -99,9 +100,9 @@ def get_access_token():
         print(f"Error acquiring access token: {e}")
         return None
 
-def make_blizz_request(access_token, region, realm, name):
+def make_blizz_request(access_token, api, region, realm, name):
     """Fetches auction house data from a specific region."""
-    url = BLIZZARD_EQ_API.format(region=region, realm=realm, name=name)
+    url = api.format(region=region, realm=realm, name=name)
     params = {
         'namespace': f'profile-{region}',
         'locale': 'en_US',
@@ -185,7 +186,7 @@ def fetch_and_process_characters():
                     sys.stdout.write(f"\rProcessed: {character_count}/30000 ({(character_count/30000*100):.2f}%), Page: {page}/250, Req/Min: {requests_per_minute:.2f}, Approx time left: {((30000-character_count)/requests_per_minute):.2f} minutes, Latest: {char_info['name']} on {char_info['realm']['name']}            ")
                     sys.stdout.flush()
                     
-                    save_data(class_name, {
+                    save_data(DATA_DIR, class_name, {
                         "id": char_info['id'],
                         "name": char_info['name'],
                         "region": char_info['region']['slug'],
@@ -197,10 +198,9 @@ def fetch_and_process_characters():
             save_progress(class_name, page + 1)  # Save progress after each page is processed
             time.sleep(max(0, 60/RATE_LIMIT - (time.time() - current_time)))  # Ensure we respect the RATE_LIMIT
 
-                
-def save_data(class_name, data):
+def save_data(dir, class_name, data):
     """Appends new data to a list stored in a JSON file efficiently."""
-    filename = os.path.join(DATA_DIR, f"{class_name}_data.json")
+    filename = os.path.join(dir, f"{class_name}_data.json")
     if os.path.exists(filename):
         with open(filename, 'rb+') as file:
             file.seek(-1, os.SEEK_END)
@@ -215,5 +215,73 @@ def save_data(class_name, data):
             # Write data as a list and ensure ASCII characters are not escaped
             file.write(json.dumps([data], ensure_ascii=False))
 
+def save_data(file_name, data):
+    """Appends new data to a list stored in a JSON file efficiently."""
+    filename = os.path.join(f"{file_name}")
+    if os.path.exists(filename):
+        with open(filename, 'rb+') as file:
+            file.seek(-1, os.SEEK_END)
+            file.truncate()
+            if file.tell() > 1:
+                file.write(b',')
+            # Ensure the data is encoded in UTF-8
+            file.write(json.dumps(data, ensure_ascii=False).encode('utf8'))
+            file.write(b']')
+    else:
+        with open(filename, 'w', encoding='utf-8') as file:
+            # Write data as a list and ensure ASCII characters are not escaped
+            file.write(json.dumps([data], ensure_ascii=False))
+
+def get_processed_character_ids(updated_file_path):
+    if os.path.exists(updated_file_path):
+        with open(updated_file_path, 'r', encoding='utf-8') as file:
+            characters = json.load(file)
+            return {character['id'] for character in characters}
+    return set()
+
+def load_data_from_file(file_path):
+    """Load data from a JSON file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+        return []
+
+def update_and_save_all_characters():
+    access_token = get_access_token()  # Ensure you have a valid access token
+    achievement_id = 19450  # ID for Fyr'alath the Dreamrender achievement
+
+    for class_name in CLASSES:
+        #sorted_file_path = os.path.join(DATA_DIR, f"{class_name}_sorted_data.json")
+        #updated_file_path = sorted_file_path.replace('_sorted_data.json', '_updated_data.json')
+        sorted_file_path = os.path.join(DATA_DIR, f"{class_name}_updated_data.json")
+        updated_file_path = sorted_file_path.replace('_updated_data.json', '_updated_2upd2ated2_data.json')
+        
+        # Get already processed character IDs to avoid reprocessing
+        processed_ids = get_processed_character_ids(updated_file_path)
+
+        characters = load_data_from_file(sorted_file_path)
+
+        for character in characters:
+            # Check if the character has already been processed
+            #if character['id'] in processed_ids:
+                #continue
+
+            if character['has_fyralath'] and character['timestamp'] == 0:
+                achievements_data = make_blizz_request(access_token, BLIZZARD_ACH_API, character['region'].lower(), character['realm'].lower(), character['name'].lower())
+                if achievements_data:
+                    for achievement in achievements_data.get('achievements', []):
+                        if achievement.get('id') == achievement_id:
+                            character['timestamp'] = achievement.get('completed_timestamp', 0) // 1000
+                            break
+            
+            # Append character data to the updated file, whether it was updated or not
+            save_data(updated_file_path, character)
+            print(f"Updated character {character}.")
+
+        print(f"Updated characters for {class_name} processed.")
+
 if __name__ == "__main__":
-    fetch_and_process_characters()
+    #fetch_and_process_characters()
+    update_and_save_all_characters()

@@ -95,6 +95,13 @@ class MongoDBManager:
 
         return documents
 
+    def get_all_acquisitions(self, collection_suffix):
+        """Retrieves all documents from the specified collection."""
+        collection_name = f"acquisitions_{collection_suffix}"
+        collection = self.db[collection_name]
+        documents = list(collection.find())
+        return documents
+
     def save_to_collection(self, collection_prefix, region, document):
         """Appends total costs data to the specified region's file."""
         return self.save_region_data(collection_prefix, region, document)
@@ -112,6 +119,18 @@ class MongoDBManager:
     def get_all_daily_averages(self):
         collection_name = "daily_averages"
         return self.get_all_region_data(collection_name)
+
+    def bulk_save_to_collection(self, collection_name, documents):
+        """
+        Saves a list of JSON objects to the specified collection.
+
+        Parameters:
+        - collection_name: The name of the collection where documents are to be saved.
+        - documents: A list of JSON objects to save to the collection.
+        """
+        collection = self.db[collection_name]
+        result = collection.insert_many(documents)
+        return result.inserted_ids
 
 # Example usage
 if __name__ == "__main__":
