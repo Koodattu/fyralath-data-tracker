@@ -143,6 +143,6 @@ if __name__ == "__main__":
     #print("Fyralath acquisitions aggregated and saved.")
 
     db_manager = MongoDBManager()
-    db_manager.bulk_save_to_collection('acquisitions_cumulative', json_to_document_list(load_data_from_file('./rio_data/cumulative_acquisitions.json'), 'class_name'))
-    db_manager.bulk_save_to_collection('acquisitions_daily', json_to_document_list(load_data_from_file('./rio_data/daily_acquisitions.json'), 'date'))
-    db_manager.bulk_save_to_collection('acquisitions_summary', json_to_document_list(load_data_from_file('./rio_data/summary_data.json'), 'date'))
+    db_manager.bulk_save_to_collection('acquisitions_cumulative', json_to_document_list(load_data_from_file('./rio_data/cumulative_acquisitions.json'), 'date'))
+    #db_manager.bulk_save_to_collection('acquisitions_daily', json_to_document_list(load_data_from_file('./rio_data/daily_acquisitions.json'), 'date'))
+    #db_manager.bulk_save_to_collection('acquisitions_summary', json_to_document_list(load_data_from_file('./rio_data/summary_data.json'), 'date'))

@@ -159,7 +159,6 @@ function displayCurrencies(data) {
   let regionCells = "";
   sortedData.forEach((regionData) => {
     const { region, wow_token_ratio } = regionData;
-    console.log(region, wow_token_ratio);
     const baseCurrency = currencies[region];
     regionCells += `<td>`;
     // Handle 'own' currency display separately
