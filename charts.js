@@ -33,6 +33,9 @@ document.addEventListener("DOMContentLoaded", () => {
           data: regionData,
           borderColor: getColorByRegion(regionName), // Function to generate random color
           fill: false,
+          cubicInterpolationMode: "monotone",
+          tension: 0.4,
+          pointStyle: false,
         });
       });
 
