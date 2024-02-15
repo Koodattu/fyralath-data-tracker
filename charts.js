@@ -151,6 +151,8 @@ function createPieCharts(summaryData) {
       labels = ["Has", "Hasn't"];
     }
 
+    data = data.map((value) => ((value / (item.true + item.false)) * 100).toFixed(2));
+
     const correctedTitle = item.date.replace("death-knight", "Death Knight").replace(/\b\w/g, (l) => l.toUpperCase()); // Correct title
 
     new Chart(contexts[index], {
@@ -179,6 +181,20 @@ function createPieCharts(summaryData) {
             text: correctedTitle,
             color: chartColors[item.date], // Set title color to match chart color
           },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                let label = context.label || "";
+                if (label) {
+                  label += ": ";
+                }
+                if (context.parsed !== null) {
+                  label += context.parsed + "%";
+                }
+                return label;
+              },
+            },
+          },
         },
       },
     });
@@ -195,11 +211,14 @@ function createLineChart(data, chartId, isCumulative = false) {
 
   const datasets = datasetLabels.map((label, index) => {
     const key = label.toLowerCase().replace(" ", "-"); // Normalize key to match JSON fields
+    const max = label.toLowerCase() === "total" ? 30000 : 10000;
     return {
       label: label,
-      data: data.map((item) => item[key] || 0),
+      data: data.map((item) => (((item[key] || 0) / max) * 100).toFixed(2)),
       borderColor: colors[index],
       fill: false,
+      cubicInterpolationMode: "monotone",
+      pointStyle: false,
     };
   });
 
@@ -232,6 +251,7 @@ function createLineChart(data, chartId, isCumulative = false) {
         },
         y: {
           beginAtZero: true,
+          max: isCumulative ? 100 : 3, // Set max value to 100 for cumulative, 30 for daily
           title: {
             display: true,
             text: isCumulative ? "Cumulative Acquisitions" : "Daily Acquisitions",
@@ -242,6 +262,9 @@ function createLineChart(data, chartId, isCumulative = false) {
           },
           ticks: {
             color: "gray", // Set label color to white
+            callback: function (value) {
+              return value + "%";
+            },
           },
         },
       },
