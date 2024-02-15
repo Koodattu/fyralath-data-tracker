@@ -122,8 +122,8 @@ function createPieCharts(summaryData) {
   const contexts = [
     document.getElementById("pieChartDeathKnight").getContext("2d"),
     document.getElementById("pieChartPaladin").getContext("2d"),
-    document.getElementById("pieChartWarrior").getContext("2d"),
     document.getElementById("pieChartTotal").getContext("2d"),
+    document.getElementById("pieChartWarrior").getContext("2d"),
   ];
 
   // Define colors for each chart type
@@ -131,16 +131,18 @@ function createPieCharts(summaryData) {
     "death-knight": "rgb(196, 30, 58)", // Color for Death Knight
     paladin: "rgb(244, 140, 186)", // Color for Paladin
     warrior: "rgb(198, 155, 109)", // Color for Warrior
+    total: "rgb(255, 128, 0)", // Color for total
   };
 
   const falseColor = "rgba(100, 100, 100, 0.6)"; // Consistent color for "false" portion
 
   summaryData.forEach((item, index) => {
+    console.log(item.date);
     let data, backgroundColors, labels;
 
     if (item.date === "total") {
       // Special handling for the "Total" chart
-      data = [summaryData[1].true, summaryData[2].true, summaryData[0].true, item.false]; // Death Knight, Paladin, Warrior true counts, and false part from total
+      data = [summaryData[1].true, summaryData[3].true, summaryData[0].true, item.false]; // Death Knight, Paladin, Warrior true counts, and false part from total
       backgroundColors = [chartColors["paladin"], chartColors["warrior"], chartColors["death-knight"], falseColor];
       labels = ["Paladin", "Warrior", "Death Knight", "Hasn't"];
     } else {
@@ -175,71 +177,7 @@ function createPieCharts(summaryData) {
           title: {
             display: true,
             text: correctedTitle,
-          },
-        },
-      },
-    });
-  });
-}
-
-function createPieCharts2(summaryData) {
-  const contexts = [
-    document.getElementById("pieChartDeathKnight").getContext("2d"),
-    document.getElementById("pieChartPaladin").getContext("2d"),
-    document.getElementById("pieChartWarrior").getContext("2d"),
-    document.getElementById("pieChartTotal").getContext("2d"),
-  ];
-
-  // Define colors for each chart type
-  const chartColors = {
-    "death-knight": "rgb(196, 30, 58)", // Color for Death Knight
-    paladin: "rgb(244, 140, 186)", // Color for Paladin
-    warrior: "rgb(198, 155, 109)", // Color for Warrior
-    total: "rgb(255, 128, 0)", // Color for Total
-  };
-
-  const falseColor = "rgba(100, 100, 100, 0.6)"; // Consistent color for "false" portion
-
-  summaryData.forEach((item, index) => {
-    const trueColor = chartColors[item.date]; // Get the color based on the chart type
-    const correctedTitle = item.date.replace("death-knight", "Death Knight").replace(/\b\w/g, (l) => l.toUpperCase()); // Correct title
-
-    new Chart(contexts[index], {
-      type: "pie",
-      data: {
-        labels: ["Has", "Hasn't"],
-        datasets: [
-          {
-            label: item.date,
-            data: [item.true || 0, item.false || 0],
-            backgroundColor: [trueColor, falseColor],
-            borderColor: ["rgba(0, 0, 0, 0.1)", "rgba(0, 0, 0, 0.1)"],
-            borderWidth: 1,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "top",
-          },
-          title: {
-            display: true,
-            text: correctedTitle,
-            color: trueColor, // This line might also need adjustment based on version
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                const label = context.label || "";
-                const value = context.parsed;
-                const total = context.dataset.data.reduce((acc, value) => acc + value, 0);
-                const percentage = ((value / total) * 100).toFixed(2) + "%";
-                return `${label}: ${percentage}`;
-              },
-            },
+            color: chartColors[item.date], // Set title color to match chart color
           },
         },
       },
@@ -296,7 +234,7 @@ function createLineChart(data, chartId, isCumulative = false) {
           beginAtZero: true,
           title: {
             display: true,
-            text: isCumulative ? "Cumulative Count" : "Daily Count",
+            text: isCumulative ? "Cumulative Acquisitions" : "Daily Acquisitions",
             color: "gray", // Set label color to white
           },
           grid: {
