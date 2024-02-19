@@ -3,9 +3,9 @@
     <img src="https://i.imgur.com/kOhczFq.png" alt="Logo" width="80" height="80">
 
   <h3 align="center"><a href="https://fyralath.koodattu.dev">Fyr'alath Data Tracker</a></h3>
-  <h4 align="center">World of Warcraft legendary axe Fyr'alath price tracking and acquisition data analysis
+  <h4 align="center">World of Warcraft legendary axe Fyr'alath price tracking and acquisition data analysis</h4>
     <br />
-    <br /></h3>
+    <br />
 </div>
 
 ## Description
