@@ -15,6 +15,10 @@ The main two main features are to display how much the legendary axe costs to cr
 For first feature the current total price-to-craft and individual item prices are shown with a graph which displays total craft price history, both for all regions.  
 The second feature is to approximate how many people have acquired the legendary and when, with graphs and charts for when characters have acquired the axe with data for total and per class.
 
+<div align="center">
+    <img src="https://i.imgur.com/5jYLyf5.png" alt="Logo" height="300">
+</div>
+
 ## Features
 
 - Shows current price craft legendary weapon per region and individual material prices
