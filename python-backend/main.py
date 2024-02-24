@@ -5,7 +5,6 @@ from flask_cors import CORS
 import json
 from auction_data_aggregator import AuctionDataAggregator
 from auction_data_fetcher import AuctionDataFetcher
-from local_storage_manager import LocalStorageManager
 from mongodb_manager import MongoDBManager
 import schedule
 import threading
@@ -19,7 +18,6 @@ cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 auction_fetcher = AuctionDataFetcher()
 data_aggregator = AuctionDataAggregator()
 db_manager = MongoDBManager()
-#db_manager = LocalStorageManager()
 
 def fetch_auction_data():
     print("Fetching auction data...")
@@ -64,8 +62,12 @@ def fetch_auction_data():
     cache.clear()
     print("Auction data fetched successfully")
 
+def fetch_acquisition_data():
+    pass
+
 # Schedule the task to run every hour
 schedule.every().hour.do(fetch_auction_data)
+schedule.every().tuesday.at("06:00").do(fetch_acquisition_data)
 
 # Create a separate thread to execute the scheduled tasks
 def run_scheduler():
@@ -75,33 +77,58 @@ def run_scheduler():
 
 @app.route('/api/data/current', methods=['GET'])
 def get_current_data():
-    print("Fetching current data...")
     cache_key = 'current_data'
     data = cache.get(cache_key)
     if data is None:
-        print("Cache missing. Getting data from db.")
         data = db_manager.get_latest_item_prices()
         data = json.dumps(data, default=str)
         cache.set(cache_key, data, timeout=None)
-    else:
-        print("Returning cached current data")
+    return data
+
+@app.route('/api/data/history/all', methods=['GET'])
+def get_history_data():
+    cache_key = 'history_data_all'
+    data = cache.get(cache_key)
+    if data is None:
+        all = db_manager.get_all_daily_averages("all")
+        data = json.dumps(all, default=str)
+        cache.set(cache_key, data, timeout=None)
     return data
 
 
-@app.route('/api/data/history', methods=['GET'])
+@app.route('/api/data/history/month', methods=['GET'])
 def get_history_data():
-    print("Fetching history data...")
-    cache_key = 'history_data'
+    cache_key = 'history_data_month'
     data = cache.get(cache_key)
     if data is None:
-        print("Cache missing. Getting data from db.")
-        data = db_manager.get_all_daily_averages()
-        data = json.dumps(data, default=str)
+        month = db_manager.get_all_daily_averages("month")
+        data = json.dumps(month, default=str)
+        cache.set(cache_key, data, timeout=None)
+    return data
+
+
+@app.route('/api/data/history/week', methods=['GET'])
+def get_history_data():
+    cache_key = 'history_data_week'
+    data = cache.get(cache_key)
+    if data is None:
+        week = db_manager.get_all_total_costs("week")
+        data = json.dumps(week, default=str)
         cache.set(cache_key, data, timeout=None)
     else:
         print("Returning cached current data.")
     return data
 
+
+@app.route('/api/data/history/day', methods=['GET'])
+def get_history_data():
+    cache_key = 'history_data_day'
+    data = cache.get(cache_key)
+    if data is None:
+        day = db_manager.get_all_total_costs("day")
+        data = json.dumps(day, default=str)
+        cache.set(cache_key, data, timeout=None)
+    return data
 
 @app.route('/api/data/acquisitions', methods=['GET'])
 def get_acquisition_data():
@@ -140,17 +167,11 @@ def get_local_ip():
 if __name__ == '__main__':
     print("Starting Flask app")
     # Start the scheduler thread
-    #fetch_auction_data()
-    print("Auction data fetched successfully")
     scheduler_thread = threading.Thread(target=run_scheduler)
     scheduler_thread.start()
 
     # Start the Flask app using the local IP address
-    print(get_local_ip())
+    print("Starting Flask app on " + get_local_ip())
     local_ip = '0.0.0.0'
     port = 5000
-    print("Flask app starting")
-    print(f"http://{local_ip}:{port}/api/data/current")
-    print(f"http://{local_ip}:{port}/api/data/history")
-    #app.run(host=local_ip)
     serve(app, host=local_ip, port=port)

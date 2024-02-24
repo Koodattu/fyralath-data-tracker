@@ -3,7 +3,6 @@ import base64
 import json
 import os
 import datetime
-import shutil
 from dotenv import load_dotenv
 
 class AuctionDataFetcher:
@@ -41,29 +40,6 @@ class AuctionDataFetcher:
             print(f"Error fetching data for {region} region: {e}")
             return None
 
-    def get_or_fetch_auction_data(self, region, access_token):
-        """Attempts to read auction data from a local file, and fetches it if not found."""
-        auction_data_filename = f'./data/auction_data/auction_data_{region}.json'
-
-        # Check if the auction data file exists and has content
-        """
-        try:
-            if os.path.exists(auction_data_filename) and os.path.getsize(auction_data_filename) > 0:
-                print(f'Using existing auction data for {region} region.')
-                with open(auction_data_filename, 'r') as file:
-                    auction_data = json.load(file)
-                return auction_data
-        except Exception as e:
-            print(f"Error reading existing auction data for {region} region: {e}")
-        """
-
-        # If file doesn't exist or is empty, fetch new data
-        print(f'Fetching new auction data for {region} region.')
-        auction_data = self.fetch_data(region, access_token)
-        #if auction_data is not None:
-            #self.save_data_as_json(auction_data_filename, auction_data)
-        return auction_data
-
     def fetch_wow_token(self, region, access_token):
         """Fetches wow token data from a specific region."""
         url = f'https://{region}.api.blizzard.com/data/wow/token/index'
@@ -79,17 +55,6 @@ class AuctionDataFetcher:
         except Exception as e:
             print(f"Error fetching data for {region} region: {e}")
             return None
-
-    def save_data_as_json(self, filename, data):
-        """Saves the fetched data as a JSON file."""
-        directory = os.path.dirname(filename)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        try:
-            with open(filename, 'w') as file:
-                json.dump(data, file)
-        except Exception as e:
-            print(f"Error saving data as JSON to {filename}: {e}")
 
     def calculate_total_cost(self, auction_data, base_json, item_ids):
         # Helper function to update item prices in the JSON structure
@@ -203,7 +168,3 @@ class AuctionDataFetcher:
             print("No new data fetched. Exiting.")
 
         return None
-
-if __name__ == '__main__':
-    auction_fetcher = AuctionDataFetcher()
-    auction_fetcher.run()

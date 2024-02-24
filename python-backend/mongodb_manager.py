@@ -7,25 +7,47 @@ import os
 class MongoDBManager:
     def __init__(self):
         try:
-            # Load environment variables
             load_dotenv()
-            # Load MongoDB connection string from .env file
             connection_string = os.getenv('MONGODB_CONNECTION_STRING', '')
+            mongo_db_name = os.getenv('MONGODB_DB_NAME', '')
             self.client = MongoClient(connection_string)
             # Check if the server is available
             self.client.admin.command('ping')
-            # Assuming the database name is included in the connection string
-            # If not, replace 'fyralath-price-data' with your database name
-            self.db = self.client['fyralath-price-data']
+            self.db = self.client[mongo_db_name]
         except ConnectionFailure as e:
             print(f"Connection to MongoDB failed: {e}")
         except Exception as e:
             print(f"An error occurred: {e}")
 
+    def get_saved_character_ids_with_class(self):
+        """Fetches IDs of all saved characters from specific class collections and their counts."""
+        class_collections = {
+            'death-knight': 'chars_death-knight',
+            'warrior': 'chars_warrior',
+            'paladin': 'chars_paladin'
+        }
+        saved_ids_with_class = {class_name: [] for class_name in class_collections.keys()}
+        counts_per_class = {class_name: 0 for class_name in class_collections.keys()}
+    
+        for class_name, collection_name in class_collections.items():
+            collection = self.db[collection_name]
+            characters = collection.find({}, {'char_id': 1, '_id': 0})
+            saved_ids_with_class[class_name] = [char['char_id'] for char in characters]
+            counts_per_class[class_name] = collection.count_documents({})
+    
+        return saved_ids_with_class, counts_per_class
+
+    def save_character_data_by_class(self, class_name, character_data):
+        """Saves character data into a collection categorized by class name."""
+        collection = self.db[f'chars_{class_name}']
+        result = collection.insert_one(character_data)
+        return result.inserted_id
+
     def save_latest_item_prices(self, document):
         """Replaces the existing document in 'latest_item_prices' with the new one."""
         collection = self.db['latest_item_prices']
-        collection.delete_many({})  # Delete all documents in the collection
+        # Delete all documents in the collection
+        collection.delete_many({})
         result = collection.insert_one(document)
         return result.inserted_id
 
@@ -51,6 +73,42 @@ class MongoDBManager:
             collection = self.db[collection_name]
             documents = list(collection.find())
             all_data.append({"region": region, "data": documents})
+        return all_data
+
+    def get_data_within_period(self, collection_name, period="all"):
+        """
+        Retrieves documents from a specified collection within the given time period.
+        Period can be 'day', 'week', 'month', or 'all'. Defaults to 'all'.
+        """
+        current_time = datetime.utcnow()
+        if period == "day":
+            start_time = current_time - timedelta(days=1)
+        elif period == "week":
+            start_time = current_time - timedelta(weeks=1)
+        elif period == "month":
+            start_time = current_time - timedelta(days=30)
+        else:  # 'all' or any other value defaults to fetching all records
+            start_time = None
+
+        query = {}
+        if start_time:
+            # Adjust based on your timestamp field format
+            # For total_cost with 'timestamp' field
+            if 'total_costs' in collection_name:
+                query["timestamp"] = {"$gte": int(start_time.timestamp() * 1000)}
+            # For daily_average with 'date' field
+            elif 'daily_averages' in collection_name:
+                start_time_str = start_time.strftime("%Y-%m-%d")
+                query["date"] = {"$gte": start_time_str}
+
+        regions = ['us', 'eu', 'kr', 'tw']
+        all_data = []
+        for region in regions:
+            region_collection_name = f"{collection_name}_{region}"
+            collection = self.db[region_collection_name]
+            documents = list(collection.find(query))
+            all_data.append({"region": region, "data": documents})
+
         return all_data
 
     def check_date_exists_in_daily_average(self, region, date):
@@ -112,44 +170,24 @@ class MongoDBManager:
     def save_daily_average(self, region, document):
         return self.save_region_data('daily_averages', region, document)
 
-    def get_all_total_costs(self):
+    def get_all_total_costs(self, period="all"):
+        """
+        Fetches all total cost data within the specified time period.
+        """
         collection_name = "total_costs"
-        return self.get_all_region_data(collection_name)
+        return self.get_data_within_period(collection_name, period)
     
-    def get_all_daily_averages(self):
+    def get_all_daily_averages(self, period="all"):
+        """
+        Fetches all daily average data within the specified time period.
+        """
         collection_name = "daily_averages"
-        return self.get_all_region_data(collection_name)
+        return self.get_data_within_period(collection_name, period)
 
     def bulk_save_to_collection(self, collection_name, documents):
         """
         Saves a list of JSON objects to the specified collection.
-
-        Parameters:
-        - collection_name: The name of the collection where documents are to be saved.
-        - documents: A list of JSON objects to save to the collection.
         """
         collection = self.db[collection_name]
         result = collection.insert_many(documents)
         return result.inserted_ids
-
-# Example usage
-if __name__ == "__main__":
-    try:
-        db_manager = MongoDBManager()
-        # Retrieve the latest item prices
-        latest_prices = db_manager.get_latest_item_prices()
-        print(f'Latest Item Prices: {latest_prices}')
-
-        # Retrieve all documents from total_costs collections across all regions
-        total_costs_data = db_manager.get_all_region_data('total_costs')
-        print('Total Costs Data across all regions:')
-        for region, data in total_costs_data.items():
-            print(f'{region.upper()}: {data}')
-
-        # Retrieve all documents from daily_average collections across all regions
-        daily_average_data = db_manager.get_all_region_data('daily_average')
-        print('Daily Average Data across all regions:')
-        for region, data in daily_average_data.items():
-            print(f'{region.upper()}: {data}')
-    except Exception as e:
-        print(f"Failed to operate with MongoDB: {e}")
