@@ -19,6 +19,18 @@ class MongoDBManager:
         except Exception as e:
             print(f"An error occurred: {e}")
 
+    def get_characters_without_fyralath(self):
+        characters_needing_update = {}
+        for class_name in ['death-knight', 'warrior', 'paladin']:
+            collection_name = f'chars_{class_name}'
+            characters = self.db[collection_name].find({"fyralath_acquired_date": 0}, {'_id':0, 'char_id': 1, 'name': 1, 'region': 1, 'realm': 1})
+            characters_needing_update[class_name] = list(characters)
+        return characters_needing_update
+
+    def update_character(self, class_name, character_id, updates):
+        collection_name = f'chars_{class_name}'
+        self.db[collection_name].update_one({'char_id': character_id}, {'$set': updates})
+
     def get_saved_character_ids_with_class(self):
         """Fetches IDs of all saved characters from specific class collections and their counts."""
         class_collections = {
@@ -28,13 +40,13 @@ class MongoDBManager:
         }
         saved_ids_with_class = {class_name: [] for class_name in class_collections.keys()}
         counts_per_class = {class_name: 0 for class_name in class_collections.keys()}
-    
+
         for class_name, collection_name in class_collections.items():
             collection = self.db[collection_name]
             characters = collection.find({}, {'char_id': 1, '_id': 0})
             saved_ids_with_class[class_name] = [char['char_id'] for char in characters]
             counts_per_class[class_name] = collection.count_documents({})
-    
+
         return saved_ids_with_class, counts_per_class
 
     def save_character_data_by_class(self, class_name, character_data):

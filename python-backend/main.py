@@ -6,6 +6,7 @@ import json
 from auction_data_aggregator import AuctionDataAggregator
 from auction_data_fetcher import AuctionDataFetcher
 from mongodb_manager import MongoDBManager
+from acquisition_data_fetcher import AcquisitionDataFetcher
 import schedule
 import threading
 import time
@@ -17,6 +18,7 @@ CORS(app)
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 auction_fetcher = AuctionDataFetcher()
 data_aggregator = AuctionDataAggregator()
+acquisition_fetcher = AcquisitionDataFetcher()
 db_manager = MongoDBManager()
 
 def fetch_auction_data():
@@ -63,11 +65,11 @@ def fetch_auction_data():
     print("Auction data fetched successfully")
 
 def fetch_acquisition_data():
-    pass
+    acquisition_fetcher.update_characters_data()
 
 # Schedule the task to run every hour
 schedule.every().hour.do(fetch_auction_data)
-schedule.every().tuesday.at("06:00").do(fetch_acquisition_data)
+schedule.every().tuesday.at("04:00").do(fetch_acquisition_data)
 
 # Create a separate thread to execute the scheduled tasks
 def run_scheduler():
