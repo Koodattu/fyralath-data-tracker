@@ -120,6 +120,7 @@ class AcquisitionDataFetcher:
 
                 url = RIO_PRIVATE_BASE.format(class_name=class_name, role=role, page=page)
                 data = make_rio_request(url)
+                request_count += 1
                 if not data:
                     continue
 
@@ -130,9 +131,6 @@ class AcquisitionDataFetcher:
 
                     if char_id in saved_character_ids[class_name]:
                         continue
-
-                    request_count += 1
-                    character_count += 1
 
                     char_url = RIO_API_BASE.format(region=char_info['region']['slug'], realm=char_info['realm']['slug'], name=char_name)
                     gear_data = make_rio_request(char_url)
@@ -161,7 +159,7 @@ class AcquisitionDataFetcher:
                                         for encounter in mode.get('progress', {}).get('encounters', []):
                                             if encounter.get('encounter', {}).get('id') == 2519:
                                                 fyrakk_kills_m = encounter.get('completed_count', 0)
-
+                    save_character = fyrakk_kills_hc > 0 or fyrakk_kills_m > 0
                     if fyrakk_kills_hc > 0 or fyrakk_kills_m > 0:
                         character_data = {
                             "name": char_name,
@@ -175,11 +173,12 @@ class AcquisitionDataFetcher:
                         }
                         mongo_db_manager.save_character_data_by_class(class_name, character_data)
                         saved_characters_per_class[class_name] += 1
+                        character_count += 1
                         if saved_characters_per_class[class_name] >= 10000:
                             break
 
                     requests_per_minute = request_count / ((time.time() - start_time) / 60) if time.time() - start_time > 0 else request_count
-                    sys.stdout.write(f"\rProcessed: {character_count}/30000 ({(character_count/30000*100):.2f}%), Page: {page}, Req/Min: {requests_per_minute:.2f}, Approx time left: {((30000-character_count)/requests_per_minute):.2f} minutes, Latest: {char_name} on {char_info['realm']['slug']}            ")
+                    sys.stdout.write(f"\rProcessed: {character_count}/30000 ({(character_count/30000*100):.2f}%), Page: {page}, Req/Min: {requests_per_minute:.2f}, Approx time left: {((30000-character_count)/requests_per_minute):.2f} minutes, Latest: {char_name} on {char_info['realm']['slug']}, Saved: {save_character}           ")
                     sys.stdout.flush()
 
                 time.sleep(max(0, 60/RATE_LIMIT - (time.time() - current_time)))
