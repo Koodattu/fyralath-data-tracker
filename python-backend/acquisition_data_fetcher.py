@@ -98,7 +98,7 @@ def make_rio_request(url):
         return None
 
 class AcquisitionDataFetcher:
-    def fetch_and_process_characters():
+    def fetch_and_process_characters(self):
         mongo_db_manager = MongoDBManager()
         saved_character_ids, saved_characters_per_class = mongo_db_manager.get_saved_character_ids_with_class()
         request_count = 0
