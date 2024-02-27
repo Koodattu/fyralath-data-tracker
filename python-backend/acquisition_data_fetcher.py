@@ -240,4 +240,3 @@ class AcquisitionDataFetcher:
 if __name__ == "__main__":
     fetcher = AcquisitionDataFetcher()
     fetcher.fetch_and_process_characters()
-    fetcher.update_characters_data()

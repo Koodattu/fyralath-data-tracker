@@ -1,5 +1,7 @@
 import requests
 import struct
+import json
+from exchange_data_parser import ExchangeDataParser
 
 MS_SEC = 1000
 MS_MINUTE = 60 * MS_SEC
@@ -61,7 +63,7 @@ def get_item_state(realm_id, item_id):
     return result
 
 class ExchangeDataFetcher:
-    def collect_item_data(self, items_details):
+    def collect_item_data(self):
         realms = {
             "us": 32512,
             "eu": 32513,
@@ -101,3 +103,9 @@ class ExchangeDataFetcher:
                     })
 
         return data
+
+if __name__ == "__main__":
+    fetcher = ExchangeDataFetcher()
+    data = fetcher.collect_item_data()
+    parser = ExchangeDataParser()
+    parser.aggregate_and_save(data)

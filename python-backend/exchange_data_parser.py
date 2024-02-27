@@ -1,43 +1,50 @@
-import os
-import json
 from datetime import datetime
 from auction_data_aggregator import AuctionDataAggregator
 from mongodb_manager import MongoDBManager
 
 class ExchangeDataParser:
-    def __init__(self, base_dir, base_file, output_dir='aggregated_data'):
-        self.base_dir = base_dir
-        self.base_file = base_file
-        self.output_dir = output_dir
-        self.base_data = self.load_base_data()
+    def __init__(self):
         self.timestamp_cutoff = datetime(2023, 11, 25).timestamp()
         self.aggregator = AuctionDataAggregator()
+        self.item_requirements = {
+            204464: 10, 194755: 250, 194863: 50, 200113: 200,
+            190321: 150, 190316: 100, 190324: 50, 205413: 3,
+            193230: 50, 204460: 400, 208212: 5
+        }
 
-    def load_base_data(self):
-        with open(self.base_file, 'r') as file:
-            return json.load(file)
-
-    def process_files(self):
-        aggregated_data = []
-
-        for region in os.listdir(self.base_dir):
-            region_path = os.path.join(self.base_dir, region)
-            if os.path.isdir(region_path):
-                region_data = [json.load(open(os.path.join(region_path, item_file), 'r')) for item_file in os.listdir(region_path)]
-                total_costs = self.aggregator.process_region_data(self.base_data, region_data, self.timestamp_cutoff)
-                if total_costs:
-                    aggregated_data.append({'region': region, 'data': total_costs})
-                    
-        return aggregated_data
-
-    def aggregate_daily_averages_and_save(self):
+    def aggregate_and_save(self, data):
         mongo_db_manager = MongoDBManager()
-        aggregated_data = self.process_files()
-        for region_data in aggregated_data:
-            daily_averages = self.aggregator.aggregate_daily_averages(region_data['data'])
-            collection_prefix = 'daily_averages'
-            mongo_db_manager.save_to_collection(collection_prefix, region_data['region'], daily_averages)
+        for region, items_data in data.items():
+            processed_data = self.process_data_for_region(items_data, self.timestamp_cutoff)
+            if processed_data:
+                mongo_db_manager.bulk_save_to_collection(f'daily_averages_{region}', processed_data)
 
-if __name__ == "__main__":
-    parser = ExchangeDataParser('base_history_data', 'base.json')
-    parser.aggregate_daily_averages_and_save()
+    def process_data_for_region(self, items_data, timestamp_cutoff):
+        valid_snapshots = {}
+        for item in items_data:
+            item_id = item['id']
+            for snapshot in item['snapshots']:
+                timestamp = snapshot['timestamp']
+                if timestamp >= timestamp_cutoff:
+                    if timestamp not in valid_snapshots:
+                        valid_snapshots[timestamp] = []
+                    valid_snapshots[timestamp].append({
+                        "id": item_id,
+                        "price": snapshot['price'],
+                        "amount_needed": self.item_requirements.get(item_id, 0)
+                    })
+
+        # Filter out dates where not all items are present
+        complete_snapshots = {ts: items for ts, items in valid_snapshots.items() if len(items) == len(self.item_requirements)}
+
+        documents = []
+        for timestamp, items in complete_snapshots.items():
+            total_cost = sum(item['price'] * item['amount_needed'] for item in items)
+            document = {
+                "timestamp": timestamp,
+                "total_cost": total_cost,
+                "items": [{"id": item["id"], "price": item["price"]} for item in items]
+            }
+            documents.append(document)
+
+        return documents
