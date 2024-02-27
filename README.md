@@ -47,6 +47,7 @@ Juha Ala-Rantala ([Koodattu](https://github.com/Koodattu/))
 ## Acknowledgments
 
 * [Chart.js](https://www.chartjs.org/) - Drawing charts
+* [Undermine.exchange](https://undermine.exchange/) - Initial price history data
 * [Raider.io](https://raider.io/) - Character data
 * [Blizzard](https://develop.battle.net/) - Auction house and character achievements data
 
