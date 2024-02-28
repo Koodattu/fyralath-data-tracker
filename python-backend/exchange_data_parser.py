@@ -23,12 +23,14 @@ class ExchangeDataParser:
         valid_snapshots = {}
         for item in items_data:
             item_id = item['id']
+            item_name = item['name']
             for snapshot in item['snapshots']:
                 timestamp = snapshot['timestamp']
                 if timestamp >= timestamp_cutoff:
                     if timestamp not in valid_snapshots:
                         valid_snapshots[timestamp] = []
                     valid_snapshots[timestamp].append({
+                        "name": item_name,
                         "id": item_id,
                         "price": snapshot['price'],
                         "amount_needed": self.item_requirements.get(item_id, 0)
@@ -42,9 +44,18 @@ class ExchangeDataParser:
             total_cost = sum(item['price'] * item['amount_needed'] for item in items)
             document = {
                 "timestamp": timestamp,
-                "total_cost": total_cost,
-                "items": [{"id": item["id"], "price": item["price"]} for item in items]
+                "items": [{"name":item["name"], "id": item["id"], "price": item["price"]} for item in items]
             }
+            
+            fyralath_detail = {
+                "name": "Fyr'alath the Dreamrender", 
+                "id": 206448,
+                "price": total_cost
+            }
+
+            # Append Fyralath as the first item
+            document['items'].insert(0, fyralath_detail)
+
             documents.append(document)
 
         return documents

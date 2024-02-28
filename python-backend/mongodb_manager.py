@@ -4,6 +4,8 @@ from pymongo.errors import ConnectionFailure
 from dotenv import load_dotenv
 import os
 
+import pytz
+
 class MongoDBManager:
     def __init__(self):
         try:
@@ -123,11 +125,11 @@ class MongoDBManager:
 
         return all_data
 
-    def check_date_exists_in_daily_average(self, region, date):
+    def check_date_exists_in_daily_average(self, region, timestamp):
         """Checks if a given date already exists in the daily_average_[region] collection."""
         collection_name = f"daily_averages_{region}"
         collection = self.db[collection_name]
-        exists = collection.find_one({"date": date}) is not None
+        exists = collection.find_one({"timestamp": timestamp}) is not None
         return exists
 
     def check_timestamp_exists_in_total_costs(self, region, timestamp):
@@ -140,7 +142,7 @@ class MongoDBManager:
     def get_total_costs_from_previous_day(self, region, given_timestamp):
         """Fetches documents that have timestamps within the previous day of the given timestamp."""
         # Convert given_timestamp from milliseconds to a datetime object
-        given_date = datetime.utcfromtimestamp(given_timestamp / 1000)
+        given_date = datetime.fromtimestamp(given_timestamp / 1000, pytz.utc)
         
         # Calculate start and end of the previous day
         start_of_previous_day = given_date - timedelta(days=1)

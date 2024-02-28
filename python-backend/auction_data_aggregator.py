@@ -1,43 +1,36 @@
-from datetime import datetime
 from collections import defaultdict
 
 class AuctionDataAggregator:
-    def calculate_total_cost(self, base_data, item_id, item_price):
-        """Calculate total cost based on item ID and price."""
-        total_cost = 0
-        for part in base_data.get('parts', []):
-            for subpart in part.get('parts', []):
-                if subpart['id'] == item_id and 'amount_needed' in subpart:
-                    total_cost += subpart['amount_needed'] * item_price
-        return total_cost
-
-    def process_region_data(self, base_data, region_data, timestamp_cutoff):
-        """Process data for a single region."""
-        # Dictionary to hold summed total costs by timestamp
-        costs_by_timestamp = {}
-        for item_data in region_data:
-            item_id = item_data['item']['id']
-            for snapshot in item_data['daily']:
-                if snapshot['snapshot'] / 1000 >= timestamp_cutoff:
-                    total_cost = self.calculate_total_cost(base_data, item_id, snapshot['price'])
-                    timestamp = snapshot['snapshot']
-                
-                    # Summing total costs for the same timestamp
-                    if timestamp in costs_by_timestamp:
-                        costs_by_timestamp[timestamp] += total_cost
-                    else:
-                        costs_by_timestamp[timestamp] = total_cost
-        # Convert the dictionary to a list of dictionaries as required
-        total_costs = [{'timestamp': timestamp, 'total_cost': total_cost} for timestamp, total_cost in costs_by_timestamp.items()]
+    def __init__(self):
+        self.item_prices = defaultdict(list)
+    
+    def process_documents(self, documents):
+        """Process all documents to aggregate item prices and Fyr'alath total costs."""
+        for doc in documents:
+            for item in doc['items']:
+                item_id = int(item['id'])
+                self.item_prices[item_id].append(int(item['price']))
+    
+    def calculate_averages(self):
+        """Calculate average prices for all items and the average total cost for Fyr'alath."""
+        averages = []
+        for item_id, prices in self.item_prices.items():
+            average_price = sum(prices) // len(prices)
+            averages.append({"id": item_id, "price": average_price})
         
-        return total_costs
+        return averages
+    
+    def generate_output_document(self, averages, timestamp):
+        """Generate the output document with averages, the specified timestamp, and Fyr'alath average total cost."""
+        output_document = {
+            "timestamp": timestamp,
+            "items": averages
+        }
 
-    def aggregate_daily_averages(self, total_costs_data):
-        """Aggregate daily averages from total costs data."""
-        daily_totals = defaultdict(list)
-        for record in total_costs_data:
-            date = datetime.fromtimestamp(record['timestamp'] / 1000).date()
-            daily_totals[date].append(record['total_cost'])
-        
-        daily_averages = [{'date': date.strftime('%Y-%m-%d'), 'average_cost': round(sum(prices) / len(prices), 2)} for date, prices in daily_totals.items()]
-        return daily_averages
+        return output_document
+
+    def aggregate_data_and_generate_output(self, documents, timestamp):
+        """Public method to process input documents and return the final output document."""
+        self.process_documents(documents)
+        averages = self.calculate_averages()
+        return self.generate_output_document(averages, timestamp)

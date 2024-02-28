@@ -191,6 +191,7 @@ class AcquisitionDataFetcher:
                 print(f"Processed all available pages for class {class_name} but did not reach 10,000 characters. Total saved: {saved_characters_per_class[class_name]}")
 
     def update_characters_data(self):
+        access_token = get_access_token()
         mongo_db_manager = MongoDBManager()
         characters_to_update = mongo_db_manager.get_characters_without_fyralath()
         for class_name, characters in characters_to_update.items():
@@ -207,14 +208,14 @@ class AcquisitionDataFetcher:
                 fyrakk_kills_hc, fyrakk_kills_m = 0, 0
 
                 if gear_data and is_wearing_fyrath_by_item_id_rio(gear_data):
-                    achievements_data = make_blizz_request(self.access_token, BLIZZARD_ACH_API, region, realm, name)
+                    achievements_data = make_blizz_request(access_token, BLIZZARD_ACH_API, region, realm, name)
                     if achievements_data:
                         for achievement in achievements_data.get('achievements', []):
                             if achievement.get('id') == 19450:  # ID for Fyralath acquisition
                                 fyralath_acquired_date = achievement.get('completed_timestamp', 0) // 1000
                                 break
 
-                    raids_data = make_blizz_request(self.access_token, BLIZZARD_RAIDS_API, region, realm, name)
+                    raids_data = make_blizz_request(access_token, BLIZZARD_RAIDS_API, region, realm, name)
                     if raids_data:
                         for expansion in raids_data.get('expansions', []):
                             for instance in expansion.get('instances', []):
