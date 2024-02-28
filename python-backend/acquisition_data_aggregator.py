@@ -47,9 +47,12 @@ class AcquisitionDataAggregator:
                 else:
                     summary[class_name]['true'] += 1
                     summary['total']['true'] += 1
-                    weeks_since_acquisition = (datetime.utcfromtimestamp(timestamp) - meeressteel_date).days // 7
-                    summary['kills_summary']['chars_with_weapon_hc'][str(weeks_since_acquisition)] += 1
-                    summary['kills_summary']['chars_with_weapon_m'][str(weeks_since_acquisition)] += 1
+                    date_time = datetime.utcfromtimestamp(timestamp)
+                    weeks_since_acquisition = (date_time - meeressteel_date).days // 7 + 1
+                    kills_hc = min(kills_hc, weeks_since_acquisition)
+                    kills_m = min(kills_m, weeks_since_acquisition)
+                    summary['kills_summary']['chars_with_weapon_hc'][str(kills_hc)] += 1
+                    summary['kills_summary']['chars_with_weapon_m'][str(kills_m)] += 1
                     
                     date = datetime.utcfromtimestamp(timestamp).strftime('%Y-%m-%d')
                     if date not in daily_acquisitions:

@@ -106,21 +106,14 @@ class MongoDBManager:
 
         query = {}
         if start_time:
-            # Adjust based on your timestamp field format
-            # For total_cost with 'timestamp' field
-            if 'total_costs' in collection_name:
-                query["timestamp"] = {"$gte": int(start_time.timestamp() * 1000)}
-            # For daily_average with 'date' field
-            elif 'daily_averages' in collection_name:
-                start_time_str = start_time.strftime("%Y-%m-%d")
-                query["date"] = {"$gte": start_time_str}
+            query["timestamp"] = {"$gte": int(start_time.timestamp() * 1000)}
 
         regions = ['us', 'eu', 'kr', 'tw']
         all_data = []
         for region in regions:
             region_collection_name = f"{collection_name}_{region}"
             collection = self.db[region_collection_name]
-            documents = list(collection.find(query))
+            documents = list(collection.find(query, {"_id": 0}))
             all_data.append({"region": region, "data": documents})
 
         return all_data
@@ -171,7 +164,7 @@ class MongoDBManager:
         """Retrieves all documents from the specified collection."""
         collection_name = f"acquisitions_{collection_suffix}"
         collection = self.db[collection_name]
-        documents = list(collection.find())
+        documents = list(collection.find({}, {'_id': 0}))
         return documents
 
     def save_to_collection(self, collection_prefix, region, document):
