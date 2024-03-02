@@ -1,5 +1,5 @@
 // Define the IDs of your checkboxes
-const checkboxIds = ["toggleCalculation", "toggleComponents", "toggleRealMoney"];
+const checkboxIds = ["toggleCalculation", "toggleRealMoney"];
 
 // Initialize checkboxes based on saved settings
 checkboxIds.forEach((id) => {
@@ -12,7 +12,7 @@ checkboxIds.forEach((id) => {
 
 document.addEventListener("DOMContentLoaded", async () => {
   // Fetch data initially if needed
-  await fetchData();
+  await fetchDataAndDisplay();
 
   // Add event listeners for checkboxes
   document.getElementById("toggleCalculation").addEventListener("change", function () {
@@ -26,17 +26,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     // Save state to localStorage
     localStorage.setItem("toggleCalculation", this.checked);
-  });
-
-  document.getElementById("toggleComponents").addEventListener("change", function () {
-    const table = document.querySelector("#price-table");
-    if (this.checked) {
-      table.classList.remove("hide-components");
-    } else {
-      table.classList.add("hide-components");
-    }
-    // Save state to localStorage
-    localStorage.setItem("toggleComponents", this.checked);
   });
 
   document.getElementById("toggleRealMoney").addEventListener("change", function () {
@@ -59,15 +48,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-async function fetchData() {
-  // Simulating a fetch request - replace with actual fetch from your backend
-  const response = await fetch("https://backend.koodattu.dev/api/data/current");
+async function fetchDataAndDisplay() {
+  // Example fetch function, replace URL with your actual data source
+  const response = await fetch("http://192.168.38.104:5000/api/data/current");
   const data = await response.json();
 
   // Update the timestamp display
   document.getElementById("timestamp").textContent = formatTimestamp(data.timestamp);
 
-  processAndDisplayData(data);
+  createTable(data);
+  displayTokens(data); // Add WoW Token ratio row
+  displayCurrencies(data); // Add currency selection dropdown row
 }
 
 // Helper function to format the timestamp (optional)
@@ -76,23 +67,6 @@ function formatTimestamp(timestamp) {
   // Convert to a more readable format
   const date = new Date(timestamp);
   return date.toLocaleString("fi-FI"); // Adjust formatting as needed
-}
-
-function processAndDisplayData(data) {
-  const itemsMap = new Map();
-
-  // Directly process each region's top-level item and its parts
-  data.data.forEach((regionData) => {
-    const topLevelItem = regionData.data;
-    // Ensure the top-level item is correctly identified and processed
-    processTopLevelItem(topLevelItem, itemsMap, regionData.region);
-    // Process parts of the top-level item
-    processParts(topLevelItem.parts, itemsMap, regionData.region);
-  });
-
-  displayItems(itemsMap);
-  displayTokens(data);
-  displayCurrencies(data);
 }
 
 function displayTokens(data) {
@@ -196,92 +170,66 @@ function displayCurrencies(data) {
   document.getElementById("currency-select").dispatchEvent(new Event("change"));
 }
 
-function processTopLevelItem(item, itemsMap, region) {
-  const itemKey = `item-${item.id}`;
-  if (!itemsMap.has(itemKey)) {
-    itemsMap.set(itemKey, {
-      name: item.name,
-      quality: item.quality,
-      prices: {},
-      amountNeeded: {}, // Top-level might not need this, but keeping structure consistent
-    });
-  }
-  // Assign the top-level item's price for the current region
-  itemsMap.get(itemKey).prices[region] = item.price;
-}
+function createTable(data) {
+  const itemsSet = new Set();
+  data.data.forEach((region) => region.items.forEach((item) => itemsSet.add(item.name)));
+  const items = Array.from(itemsSet);
 
-function processParts(parts, itemsMap, region) {
-  parts.forEach((part) => {
-    const partKey = `item-${part.id}`;
-    if (!itemsMap.has(partKey)) {
-      itemsMap.set(partKey, createItemEntry(part, region));
-    } else {
-      itemsMap.get(partKey).prices[region] = part.price;
-      if (part.amount_needed) {
-        itemsMap.get(partKey).amountNeeded[region] = part.amount_needed;
-      }
-    }
+  const table = document.getElementById("price-table");
+  table.innerHTML = ""; // Clear the table first
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
+  table.appendChild(thead);
+  table.appendChild(tbody);
 
-    if (part.parts) {
-      processParts(part.parts, itemsMap, region);
-    }
+  // Header row with regions
+  const headerRow = document.createElement("tr");
+  headerRow.innerHTML = "<th>Items</th>";
+  data.data.forEach((region) => {
+    const th = document.createElement("th");
+    th.textContent = region.region.toUpperCase();
+    headerRow.appendChild(th);
   });
-}
+  thead.appendChild(headerRow);
 
-function createItemEntry(part, region) {
-  const entry = {
-    name: part.name,
-    quality: part.quality,
-    prices: { [region]: part.price },
-    amountNeeded: {},
-  };
-  if (part.amount_needed) {
-    entry.amountNeeded[region] = part.amount_needed;
-  }
-  return entry;
-}
-
-function displayItems(itemsMap) {
-  const tbody = document.querySelector("#price-table tbody");
-
-  itemsMap.forEach((details, id) => {
+  // Rows for each item
+  items.forEach((itemName) => {
     const row = document.createElement("tr");
-    row.id = id;
-    row.innerHTML = `<td><div class="item-icon-name"><img class="item-icon" src="images/${id
-      .split("-")
-      .pop()}.jpg"/><a href="https://www.wowhead.com/item=${id.split("-").pop()}" class="${getQualityClass(
-      details.quality
-    )}" data-wowhead="item=${id.split("-").pop()}">${details.name}</a>${
-      Object.values(details.amountNeeded).some((amount) => amount)
-        ? `<span class="white-text calculation">&nbsp;x ${
-            Object.values(details.amountNeeded).find((amount) => amount) || "</span>"
-          }`
-        : ""
-    }</div></td>
-                    ${["eu", "us", "tw", "kr"]
-                      .map((region) => {
-                        const price = details.prices[region] || 0;
-                        const amountNeeded = details.amountNeeded[region];
-                        const totalPrice = amountNeeded ? price * amountNeeded : price;
-                        if (amountNeeded) {
-                          return `<td><div class="item-icon-name"><span class="not-calculation">${formatGold(
-                            price
-                          )} </span>${
-                            amountNeeded ? `<span class="calculation">${formatGold(totalPrice)} </span>` : ""
-                          }<img class="gold-icon" src="images/money-gold.gif"/></div></td>`;
-                        } else {
-                          return `<td><div class="item-icon-name">${formatGold(
-                            price
-                          )}<img class="gold-icon" src="images/money-gold.gif"/></div></td>`;
-                        }
-                      })
-                      .join("")}`;
+    const itemCell = document.createElement("td");
+    const item = data.data.map((region) => region.items.find((i) => i.name === itemName)).filter((i) => i)[0];
+    const check = item["amount_needed"] !== undefined;
+    itemCell.innerHTML = `<div class="item-icon-name"><img src="images/${
+      item.id
+    }.jpg" class="item-icon"/><a href="https://www.wowhead.com/item=${item.id}" class="${getQualityClass(
+      item.id
+    )}" data-wowhead="item=${item.id}" target="_blank">${itemName}</a>${
+      check ? `<span class="white-text calculation">&nbsp;x ${item["amount_needed"] || "</span>"}` : ""
+    }</div>`;
+    row.appendChild(itemCell);
+    data.data.forEach((region) => {
+      const cell = document.createElement("td");
+      const item = region.items.find((i) => i.name === itemName);
+      if (item) {
+        if (check) {
+          cell.innerHTML = `<div class="item-icon-name"><span class="not-calculation">${Math.floor(
+            item.price / 10000
+          ).toLocaleString("fi-FI")}</span>
+          <span class="calculation">${Math.floor((item.price / 10000) * item["amount_needed"]).toLocaleString(
+            "fi-FI"
+          )}</span>
+          <img class="gold-icon" src="images/money-gold.gif"/></div>`;
+        } else {
+          cell.innerHTML = `<div class="item-icon-name">${Math.floor(item.price / 10000).toLocaleString("fi-FI")}
+          <img class="gold-icon" src="images/money-gold.gif"/></div>`;
+        }
+      } else {
+        cell.textContent = "N/A";
+      }
+      row.appendChild(cell);
+    });
+
     tbody.appendChild(row);
   });
-}
-
-function formatGold(price) {
-  return Math.floor(price / 10000).toLocaleString("fi-FI");
 }
 
 function getQualityClass(quality) {
@@ -289,9 +237,9 @@ function getQualityClass(quality) {
     common: "common",
     uncommon: "uncommon",
     rare: "rare",
-    epic: "epic",
-    legendary: "legendary",
+    200113: "epic",
+    206448: "legendary",
     artifact: "artifact",
   };
-  return qualityClasses[quality] || "artifact";
+  return qualityClasses[quality] || "rare";
 }

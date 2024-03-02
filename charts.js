@@ -1,96 +1,157 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Fetch the JSON data
-  fetch("https://backend.koodattu.dev/api/data/history")
-    .then((response) => response.json())
-    .then((data) => {
-      // Initialize arrays to hold labels (dates) and datasets (region prices)
-      let labels = [];
-      let datasets = [];
+  const cachedData = {}; // Cache fetched data
+  const timeRangeDropdown = document.getElementById("timeRangeSelect");
+  const regionDropdown = document.getElementById("regionSelect");
+  const chartContext = document.getElementById("myChart").getContext("2d");
+  let myChart; // Chart.js chart instance
 
-      // Iterate over each region
-      data.forEach((region) => {
-        // Extract region name and initialize an array to hold data points
-        const regionName = region.region;
-        const regionData = [];
+  // Fetch initial data
+  fetchDataAndUpdateChart("all", "all");
 
-        // Iterate over each data point in the region
-        region.data.forEach((dataPoint) => {
-          // Push date and average cost to the region data array
-          regionData.push({
-            x: new Date(dataPoint.date), // Parse date string into Date object
-            y: dataPoint.average_cost / 10000,
-          });
+  timeRangeDropdown.addEventListener("change", () => {
+    const timeRange = timeRangeDropdown.value;
+    const region = regionDropdown.value;
+    fetchDataAndUpdateChart(timeRange, region);
+  });
 
-          // Add the date to labels array if not already present
-          if (!labels.includes(dataPoint.date)) {
-            labels.push(dataPoint.date);
-          }
+  regionDropdown.addEventListener("change", () => {
+    const timeRange = timeRangeDropdown.value;
+    const region = regionDropdown.value;
+    const transformedData = transformDataForChart(cachedData[timeRange], region);
+    updateChart(transformedData);
+  });
+
+  function fetchDataAndUpdateChart(timeRange, region) {
+    const endpoint = `http://192.168.38.104:5000/api/data/history/${timeRange}`;
+
+    if (!cachedData[timeRange]) {
+      fetch(endpoint)
+        .then((response) => response.json())
+        .then((data) => {
+          cachedData[timeRange] = data; // Cache the fetched data
+          const transformedData = transformDataForChart(data, region); // Transform the data for the chart
+          updateChart(transformedData); // Update the chart with the transformed data
         });
+    } else {
+      const transformedData = transformDataForChart(cachedData[timeRange], region); // Transform the cached data for the chart
+      updateChart(transformedData); // Update the chart with the transformed data
+    }
+  }
 
-        // Push the dataset for this region to datasets array
-        datasets.push({
-          label: regionName,
-          data: regionData,
-          borderColor: getColorByRegion(regionName), // Function to generate random color
-          fill: false,
-          cubicInterpolationMode: "monotone",
-          tension: 0.4,
-          pointStyle: false,
-        });
-      });
+  function transformDataForChart(data, selectedRegion) {
+    // Assuming all regions are selected with 'all', otherwise filter by selected region
+    const filteredData = selectedRegion === "all" ? data : data.filter((item) => item.region === selectedRegion);
+    // Transform the filtered data based on your requirements (e.g., specific item prices across regions)
+    return transformDataToChartFormat(filteredData, selectedRegion);
+  }
 
-      // Sort labels array in ascending order
-      labels.sort();
+  function updateChart(transformedData) {
+    if (window.myChart && typeof window.myChart.destroy === "function") {
+      window.myChart.destroy();
+    }
 
-      // Create Chart.js line chart
-      const ctx = document.getElementById("myChart").getContext("2d");
-      new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: datasets,
-        },
-        options: {
-          maintainAspectRatio: false,
-          responsive: true,
-          scales: {
-            x: {
-              type: "time",
-              time: {
-                unit: "day",
-                displayFormats: {
-                  day: "MMM d",
-                },
-              },
-              title: {
-                display: true,
-                text: "Date",
-                color: "gray", // Set label color to white
-              },
-              grid: {
-                color: "gray", // Set grid color to white
-              },
-              ticks: {
-                color: "gray", // Set label color to white
+    const ctx = document.getElementById("myChart").getContext("2d");
+    window.myChart = new Chart(ctx, {
+      type: "line", // Line chart type
+      data: {
+        labels: transformedData.labels,
+        datasets: transformedData.datasets,
+      },
+      options: {
+        maintainAspectRatio: false,
+        responsive: true,
+        scales: {
+          x: {
+            type: "time",
+            time: {
+              unit: "day",
+              displayFormats: {
+                day: "MMM d",
               },
             },
-            y: {
-              title: {
-                display: true,
-                text: "Average Cost (gold)",
-                color: "gray", // Set label color to white
-              },
-              grid: {
-                color: "gray", // Set grid color to white
-              },
-              ticks: {
-                color: "gray", // Set label color to white
-              },
+            title: {
+              display: true,
+              text: "Date",
+              color: "gray", // Set label color to white
+            },
+            grid: {
+              color: "gray", // Set grid color to white
+            },
+            ticks: {
+              color: "gray", // Set label color to white
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: "Average Cost (gold)",
+              color: "gray", // Set label color to white
+            },
+            grid: {
+              color: "gray", // Set grid color to white
+            },
+            ticks: {
+              color: "gray", // Set label color to white
             },
           },
         },
+      },
+    });
+  }
+
+  function transformDataToChartFormat(data, selectedRegion = "all") {
+    const labels = []; // Timestamps for x-axis
+    const datasets = []; // Data for each region or item
+
+    data.forEach((region) => {
+      if (selectedRegion !== "all" && region.region !== selectedRegion) {
+        return; // Skip regions not selected
+      }
+
+      region.data.forEach((point) => {
+        point.items.forEach((item) => {
+          // If region is "all", only add "Fyr'alath the Dreamrender"; otherwise, add all items
+          if (selectedRegion === "all" && item.name !== "Fyr'alath the Dreamrender") {
+            return;
+          }
+
+          const itemLabel = `${item.name} (${region.region})`;
+          if (!datasets.some((ds) => ds.label === itemLabel)) {
+            datasets.push({
+              label: itemLabel,
+              data: [],
+              borderColor: getRandomColor(),
+              fill: false,
+            });
+          }
+
+          const dataset = datasets.find((ds) => ds.label === itemLabel);
+          dataset.data.push({ x: point.timestamp, y: item.price / 10000 }); // Assuming price is in 'cents' and converting to 'gold'
+
+          if (!labels.includes(point.timestamp)) {
+            labels.push(point.timestamp);
+          }
+        });
       });
     });
+
+    // Ensure labels are sorted in chronological order
+    labels.sort((a, b) => new Date(a) - new Date(b));
+    datasets.forEach((dataset) => {
+      dataset.data.sort((a, b) => new Date(a.x) - new Date(b.x));
+    });
+
+    return { labels, datasets };
+  }
+
+  function getRandomColor() {
+    var letters = "0123456789ABCDEF";
+    var color = "#";
+    for (var i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
 });
 
 // Function to generate color based on region
@@ -109,98 +170,101 @@ function getColorByRegion(region) {
   }
 }
 
-// acquisition charts
-
 document.addEventListener("DOMContentLoaded", () => {
-  fetch("https://backend.koodattu.dev/api/data/acquisitions")
+  fetch("http://192.168.38.104:5000/api/data/acquisitions")
     .then((response) => response.json())
     .then((data) => {
       createPieCharts(data.summary);
       createLineChart(data.daily, "dailyLineChart");
-      createLineChart(data.cumulative, "cumulativeLineChart", true); // Note the added parameter for cumulative data handling
+      createLineChart(data.cumulative, "cumulativeLineChart", true);
+      createKillsSummaryBarCharts(data.summary[0]["kills_summary"]);
     });
 });
 
 function createPieCharts(summaryData) {
-  const contexts = [
-    document.getElementById("pieChartDeathKnight").getContext("2d"),
-    document.getElementById("pieChartPaladin").getContext("2d"),
-    document.getElementById("pieChartTotal").getContext("2d"),
-    document.getElementById("pieChartWarrior").getContext("2d"),
-  ];
-
-  // Define colors for each chart type
-  const chartColors = {
-    "death-knight": "rgb(196, 30, 58)", // Color for Death Knight
-    paladin: "rgb(244, 140, 186)", // Color for Paladin
-    warrior: "rgb(198, 155, 109)", // Color for Warrior
-    total: "rgb(255, 128, 0)", // Color for total
+  const chartMappings = {
+    "death-knight": document.getElementById("pieChartDeathKnight").getContext("2d"),
+    paladin: document.getElementById("pieChartPaladin").getContext("2d"),
+    total: document.getElementById("pieChartTotal").getContext("2d"),
+    warrior: document.getElementById("pieChartWarrior").getContext("2d"),
   };
 
-  const falseColor = "rgba(100, 100, 100, 0.6)"; // Consistent color for "false" portion
+  const chartColors = {
+    "death-knight": "rgb(196, 30, 58)",
+    paladin: "rgb(244, 140, 186)",
+    warrior: "rgb(198, 155, 109)",
+    total: "rgb(255, 128, 0)",
+  };
 
-  summaryData.forEach((item, index) => {
-    console.log(item.date);
-    let data, backgroundColors, labels;
+  const falseColor = "rgba(100, 100, 100, 0.6)";
 
-    if (item.date === "total") {
-      // Special handling for the "Total" chart
-      data = [summaryData[1].true, summaryData[3].true, summaryData[0].true, item.false]; // Death Knight, Paladin, Warrior true counts, and false part from total
-      backgroundColors = [chartColors["paladin"], chartColors["warrior"], chartColors["death-knight"], falseColor];
-      labels = ["Paladin", "Warrior", "Death Knight", "Hasn't"];
-    } else {
-      data = [item.true || 0, item.false || 0];
-      backgroundColors = [chartColors[item.date], falseColor];
-      labels = ["Has", "Hasn't"];
-    }
+  // Assuming summaryData is the array containing the summary object
+  const summary = summaryData[0]; // Adjusted to access the first object in the array
 
-    data = data.map((value) => ((value / (item.true + item.false)) * 100).toFixed(2));
+  Object.keys(summary).forEach((key, index) => {
+    if (key !== "kills_summary") {
+      // Exclude 'kills_summary' from pie charts
+      const item = summary[key];
+      let data, backgroundColors, labels;
 
-    const correctedTitle = item.date.replace("death-knight", "Death Knight").replace(/\b\w/g, (l) => l.toUpperCase()); // Correct title
+      if (key === "total") {
+        data = [summary["paladin"].true, summary["warrior"].true, summary["death-knight"].true, item.false];
+        backgroundColors = [chartColors["paladin"], chartColors["warrior"], chartColors["death-knight"], falseColor];
+        labels = ["Paladin", "Warrior", "Death Knight", "Hasn't"];
+      } else {
+        data = [item.true || 0, item.false || 0];
+        backgroundColors = [chartColors[key], falseColor];
+        labels = ["Has", "Hasn't"];
+      }
 
-    new Chart(contexts[index], {
-      type: "pie",
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: item.date,
-            data: data,
-            backgroundColor: backgroundColors,
-            borderColor: ["rgba(0, 0, 0, 0.1)", "rgba(0, 0, 0, 0.1)"],
-            borderWidth: 1,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: "top",
-          },
-          title: {
-            display: true,
-            text: correctedTitle,
-            color: chartColors[item.date], // Set title color to match chart color
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                let label = context.label || "";
-                if (label) {
-                  label += ": ";
-                }
-                if (context.parsed !== null) {
-                  label += context.parsed + "%";
-                }
-                return label;
+      data = data.map((value) => ((value / (item.true + item.false)) * 100).toFixed(2));
+
+      const correctedTitle = key.replace("death-knight", "Death Knight").replace(/\b\w/g, (l) => l.toUpperCase());
+
+      new Chart(chartMappings[key], {
+        type: "pie",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: key,
+              data: data,
+              backgroundColor: backgroundColors,
+              borderColor: ["rgba(0, 0, 0, 0.1)", "rgba(0, 0, 0, 0.1)"],
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "top",
+            },
+            title: {
+              display: true,
+              text: correctedTitle,
+              color: chartColors[key], // Use dynamic key for title color
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  let label = context.label || "";
+                  if (label) {
+                    label += ": ";
+                  }
+                  if (context.parsed !== null) {
+                    label += context.parsed + "%";
+                  }
+                  return label;
+                },
               },
             },
           },
         },
-      },
-    });
+      });
+    }
   });
 }
 
@@ -254,7 +318,7 @@ function createLineChart(data, chartId, isCumulative = false) {
         },
         y: {
           beginAtZero: true,
-          max: isCumulative ? 100 : 3, // Set max value to 100 for cumulative, 30 for daily
+          max: isCumulative ? 100 : 3.5, // Set max value to 100 for cumulative, 30 for daily
           title: {
             display: true,
             text: isCumulative ? "Cumulative Acquisitions" : "Daily Acquisitions",
@@ -272,5 +336,48 @@ function createLineChart(data, chartId, isCumulative = false) {
         },
       },
     },
+  });
+}
+
+function createKillsSummaryBarCharts(killsSummary) {
+  const chartIds = {
+    chars_with_weapon_hc: "barChartCharsWithWeaponHC",
+    chars_with_weapon_m: "barChartCharsWithWeaponM",
+    chars_without_weapon_hc: "barChartCharsWithoutWeaponHC",
+    chars_without_weapon_m: "barChartCharsWithoutWeaponM",
+  };
+
+  Object.keys(killsSummary).forEach((category) => {
+    const canvasContext = document.getElementById(chartIds[category]).getContext("2d");
+    const data = Object.keys(killsSummary[category]).map((key) => ({
+      x: key,
+      y: killsSummary[category][key],
+    }));
+
+    new Chart(canvasContext, {
+      type: "bar",
+      data: {
+        datasets: [
+          {
+            label: category.replace(/_/g, " ").replace(/hc|m/g, (match) => match.toUpperCase()) + " Fyrakk kills",
+            data: data,
+            backgroundColor: "rgba(54, 162, 235, 0.2)",
+            borderColor: "rgba(54, 162, 235, 1)",
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        scales: {
+          x: {
+            type: "category",
+            labels: Object.keys(killsSummary[category]),
+          },
+          y: {
+            beginAtZero: true,
+          },
+        },
+      },
+    });
   });
 }

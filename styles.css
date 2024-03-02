@@ -8,6 +8,7 @@ body {
   padding: 20px;
   background-color: rgb(32, 32, 32);
   color: white;
+  max-width: 100vw;
 }
 
 table {
@@ -118,14 +119,14 @@ a {
 
 .grid-wrapper {
   display: grid;
-  grid-template-columns: repeat(2, minmax(800px, auto));
+  grid-template-columns: 1fr 1fr;
   grid-gap: 1em;
 }
 
 .chart-style {
-  position: relative;
   margin: 0;
   min-height: 500px;
+  max-width: 1650px;
 }
 
 .pie-charts {
@@ -145,7 +146,33 @@ a {
 
 .options-checkboxes {
   display: flex;
+  flex-direction: row;
+}
+
+.options-checkboxes label {
+  margin-right: 16px;
+}
+
+.price-chart-controls {
+  display: flex;
+  flex-direction: row;
+}
+
+.price-chart-controls label {
+  margin-left: 12px;
+  margin-right: 4px;
+}
+
+.price-chart-controls input {
+  vertical-align: middle;
+}
+
+.title-content {
+  display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  height: 100px;
+  margin-bottom: 16px;
 }
 
 @media screen and (max-width: 1650px) {
@@ -174,9 +201,5 @@ a {
 
   table {
     font-size: 10px;
-  }
-
-  .options-checkboxes {
-    flex-direction: row;
   }
 }

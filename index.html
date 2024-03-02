@@ -27,31 +27,40 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="lastUpdated">Last Updated: <span id="timestamp">Loading...</span></div>
-    <h1>Auction House Prices by Item and Region</h1>
+    <div class="title-content">
+      <div id="lastUpdated">Last Updated: <span id="timestamp">Loading...</span></div>
+      <h1>Fyr'alath Statistics</h1>
+      <h2>Auction House Prices by Item and Region</h2>
+    </div>
     <div class="options-checkboxes">
       <label> <input type="checkbox" id="toggleCalculation" checked /> Show Price Calculations</label>
-      <label> <input type="checkbox" id="toggleComponents" /> Show Components</label>
       <label> <input type="checkbox" id="toggleRealMoney" /> Show Real Money Comparison</label>
     </div>
     <div class="grid-wrapper">
-      <table id="price-table" class="show-calculation hide-calculation hide-components hide-money">
-        <thead>
-          <tr>
-            <th>Item Name</th>
-            <th>EU Prices</th>
-            <th>US Prices</th>
-            <th>TW Prices</th>
-            <th>KR Prices</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Data rows will be inserted here by JavaScript -->
-        </tbody>
-      </table>
-      <div class="chart-style">
-        <canvas id="myChart"></canvas>
+      <table id="price-table" class="show-calculation hide-calculation hide-components hide-money"></table>
+      <div>
+        <div class="price-chart-controls">
+          <label for="timeRangeSelect">Time Range:</label>
+          <select id="timeRangeSelect">
+            <option value="all">All</option>
+            <option value="month">Month</option>
+            <option value="week">Week</option>
+            <option value="day">Day</option>
+          </select>
+          <label for="regions">Region:</label>
+          <select id="regionSelect">
+            <option value="all">All</option>
+            <option value="eu">EU</option>
+            <option value="us">US</option>
+            <option value="tw">TW</option>
+            <option value="kr">KR</option>
+          </select>
+        </div>
+        <div class="chart-style">
+          <canvas id="myChart"></canvas>
+        </div>
       </div>
+      <h2>Acquisition Statistics By Class</h2>
       <div class="chart-style">
         <canvas id="dailyLineChart"></canvas>
       </div>
@@ -71,6 +80,24 @@
       </div>
       <div id="pcdk" class="pie-chart">
         <canvas id="pieChartDeathKnight"></canvas>
+      </div>
+    </div>
+    <div class="grid-wrapper">
+      <div class="chart-style">
+        <h3>Heroic Fyrakk kills to acquire Fyr'alath</h3>
+        <canvas id="barChartCharsWithWeaponHC"></canvas>
+      </div>
+      <div class="chart-style">
+        <h3>Mythic Fyrakk kills to acquire Fyr'alath</h3>
+        <canvas id="barChartCharsWithWeaponM"></canvas>
+      </div>
+      <div class="chart-style">
+        <h3>Heroic Fyrakk kills without Fyr'alath</h3>
+        <canvas id="barChartCharsWithoutWeaponHC"></canvas>
+      </div>
+      <div class="chart-style">
+        <h3>Mythic Fyrakk kills without Fyr'alath</h3>
+        <canvas id="barChartCharsWithoutWeaponM"></canvas>
       </div>
     </div>
     <script src="table.js"></script>
