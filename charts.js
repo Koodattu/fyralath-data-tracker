@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function fetchDataAndUpdateChart(timeRange, region) {
-    const endpoint = `http://192.168.38.104:5000/api/data/history/${timeRange}`;
+    const endpoint = `https://backend.koodattu.dev/api/data/history/${timeRange}`;
 
     if (!cachedData[timeRange]) {
       fetch(endpoint)
@@ -171,7 +171,7 @@ function getColorByRegion(region) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  fetch("http://192.168.38.104:5000/api/data/acquisitions")
+  fetch("https://backend.koodattu.dev/api/data/acquisitions")
     .then((response) => response.json())
     .then((data) => {
       createPieCharts(data.summary);
