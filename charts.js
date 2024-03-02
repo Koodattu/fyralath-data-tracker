@@ -58,6 +58,10 @@ document.addEventListener("DOMContentLoaded", () => {
         datasets: transformedData.datasets,
       },
       options: {
+        interaction: {
+          mode: "index",
+          intersect: false,
+        },
         maintainAspectRatio: false,
         responsive: true,
         scales: {
@@ -294,6 +298,10 @@ function createLineChart(data, chartId, isCumulative = false) {
     type: "line",
     data: { labels, datasets },
     options: {
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
       responsive: true,
       maintainAspectRatio: false,
       scales: {
@@ -368,6 +376,10 @@ function createKillsSummaryBarCharts(killsSummary) {
         ],
       },
       options: {
+        interaction: {
+          mode: "index",
+          intersect: false,
+        },
         scales: {
           x: {
             type: "category",

@@ -97,18 +97,6 @@ a {
   display: none; /* Hide when this class is added */
 }
 
-.hide-components #item-209998 td {
-  display: none;
-}
-
-.hide-components #item-210003 td {
-  display: none;
-}
-
-.hide-components #item-209351 td {
-  display: none;
-}
-
 .hide-money #wow-token td {
   display: none;
 }
