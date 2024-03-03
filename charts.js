@@ -115,11 +115,21 @@ document.addEventListener("DOMContentLoaded", () => {
       region.data.forEach((point) => {
         point.items.forEach((item) => {
           // If region is "all", only add "Fyr'alath the Dreamrender"; otherwise, add all items
-          if (selectedRegion === "all" && item.name !== "Fyr'alath the Dreamrender") {
-            return;
+          let itemLabel = `${item.name} (${region.region})`;
+          if (selectedRegion === "all") {
+            if (item.name !== "Fyr'alath the Dreamrender") {
+              return;
+            } else {
+              itemLabel = `${region.region}`;
+            }
+          } else {
+            if (item.name === "Fyr'alath the Dreamrender") {
+              return;
+            } else {
+              itemLabel = `${item.name}`;
+            }
           }
 
-          const itemLabel = `${item.name} (${region.region})`;
           if (!datasets.some((ds) => ds.label === itemLabel)) {
             datasets.push({
               label: itemLabel,
