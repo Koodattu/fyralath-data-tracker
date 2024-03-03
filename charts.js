@@ -304,6 +304,23 @@ function createLineChart(data, chartId, isCumulative = false) {
       },
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            // This callback is used to modify the label of the tooltip
+            label: function (context) {
+              let label = context.dataset.label || "";
+              if (label) {
+                label += ": ";
+              }
+              if (context.parsed.y !== null) {
+                label += context.parsed.y + "%";
+              }
+              return label;
+            },
+          },
+        },
+      },
       scales: {
         x: {
           type: "time",
@@ -329,7 +346,7 @@ function createLineChart(data, chartId, isCumulative = false) {
           max: isCumulative ? 100 : 3.5, // Set max value to 100 for cumulative, 30 for daily
           title: {
             display: true,
-            text: isCumulative ? "Cumulative Acquisitions" : "Daily Acquisitions",
+            text: isCumulative ? "Cumulative Acquisitions (%)" : "Daily Acquisitions (%)",
             color: "gray", // Set label color to white
           },
           grid: {
