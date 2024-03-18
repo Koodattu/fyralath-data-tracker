@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import base64
 
 from mongodb_manager import MongoDBManager
+from acquisition_data_aggregator import AcquisitionDataAggregator
 
 # Define constants
 CLASSES = ["death-knight", "paladin", "warrior"]
@@ -24,8 +25,12 @@ BLIZZARD_RAIDS_API = "https://{region}.api.blizzard.com/profile/wow/character/{r
 
 def is_wearing_fyrath_by_item_id_rio(character_gear):
     fyralath_item_id = 206448
-    main_hand_item = character_gear.get('gear', {}).get('items', {}).get('mainhand', {})
-    return main_hand_item.get('item_id') == fyralath_item_id
+    try:
+        main_hand_item = character_gear.get('gear', {}).get('items', {}).get('mainhand', {})
+        return main_hand_item.get('item_id') == fyralath_item_id
+    except Exception:
+        return False
+    
 def is_wearing_fyrath_by_item_id_blizz(character_gear):
     fyrath_item_id = 206448
     for item in character_gear.get('equipped_items', []):
@@ -201,6 +206,8 @@ class AcquisitionDataFetcher:
                 realm = char['realm']
                 name = char['name']
 
+                print("Updating character:", name, realm, region)
+
                 char_url = RIO_API_BASE.format(region=region, realm=realm, name=name)
                 gear_data = make_rio_request(char_url)
                 
@@ -237,7 +244,13 @@ class AcquisitionDataFetcher:
                         "fyrakk_kills_m": fyrakk_kills_m
                     }
                     mongo_db_manager.update_character(class_name, char_id, updates)
+                    print(f"Character {name} on {realm} updated.")
+                else:
+                    print(f"Character {name} on {realm} did not have any new data.")
 
 if __name__ == "__main__":
     fetcher = AcquisitionDataFetcher()
-    fetcher.fetch_and_process_characters()
+    #fetcher.fetch_and_process_characters()
+    fetcher.update_characters_data()
+    acquisition_aggregator = AcquisitionDataAggregator()
+    acquisition_aggregator.aggregate_data()
