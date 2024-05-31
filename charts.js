@@ -22,7 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function fetchDataAndUpdateChart(timeRange, region) {
-    const endpoint = `https://backend.koodattu.dev/api/data/history/${timeRange}`;
+    //const endpoint = `https://backend.koodattu.dev/api/data/history/${timeRange}`;
+    const endpoint = `./data/history_${timeRange}.json`;
 
     if (!cachedData[timeRange]) {
       fetch(endpoint)
@@ -185,7 +186,8 @@ function getColorByRegion(region) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  fetch("https://backend.koodattu.dev/api/data/acquisitions")
+  //fetch("https://backend.koodattu.dev/api/data/acquisitions")
+  fetch("./data/acquisitions.json")
     .then((response) => response.json())
     .then((data) => {
       createPieCharts(data.summary);
@@ -353,7 +355,7 @@ function createLineChart(data, chartId, isCumulative = false) {
         },
         y: {
           beginAtZero: true,
-          max: isCumulative ? 100 : 3.5, // Set max value to 100 for cumulative, 30 for daily
+          max: isCumulative ? 100 : 3.6, // Set max value to 100 for cumulative, 30 for daily
           title: {
             display: true,
             text: isCumulative ? "Cumulative Acquisitions (%)" : "Daily Acquisitions (%)",
